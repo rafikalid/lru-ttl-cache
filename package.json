@@ -1,0 +1,37 @@
+{
+  "name": "lru-ttl-cache",
+  "version": "1.1.0",
+  "description": "Fast LRU and TTL cache",
+  "main": "build/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rafikalid/lru-ttl-cache.git"
+  },
+  "keywords": [
+    "LRU",
+    "TTL",
+    "CACHE"
+  ],
+  "author": "khalid RAFIK",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/rafikalid/lru-ttl-cache/issues"
+  },
+  "homepage": "https://github.com/rafikalid/lru-ttl-cache#readme",
+  "devDependencies": {
+    "cli-table": "^0.3.1",
+    "gulp": "^4.0.2",
+    "gulp-chug": "^0.5.1",
+    "gulp-coffeescript": "0.0.15",
+    "gulp-ejs": "^5.0.0",
+    "gulp-error-handle": "^1.0.1",
+    "gulp-include": "^2.4.1",
+    "gulp-rename": "^1.4.0",
+    "gulp-template": "^5.0.0",
+    "gulp-terser": "^1.2.0",
+    "gulp-util": "^3.0.8"
+  }
+}
