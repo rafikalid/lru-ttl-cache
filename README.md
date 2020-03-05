@@ -38,13 +38,13 @@ cache.get(mixedKey);
 
 // Remove element from the cache
 cache.delete('key');
-cache.remove(mixedKey);
+cache.delete(mixedKey);
 
 // Remove all elements
 cache.clear();
 
 // Remove least used element
-element= cache.pop();
+var element= cache.pop();
 
 // Check if the cache has a key
 <Boolean> cache.has('key');
@@ -85,7 +85,7 @@ const options= {
 	 */
 	ttl: Infinity,
 	/**
-	 * Refresh the element when calling the cache.get method
+	 * Set the element as the last used when calling the cache.get method
 	 * @default true
 	 */
 	refreshOnGet: true,
@@ -169,7 +169,12 @@ Just set the required configuration as options.
 # Credits
 
 Khalid RAFIK
-Open for contribution (open an issue).
+
+# Let's contribute
+Open an issue or contact me: khalid.rfk@gmail.com
+
+# Support
+Open an issue or contact me: khalid.rfk@gmail.com
 
 # Licence
 
