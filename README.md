@@ -8,11 +8,13 @@ npm i -S lru-ttl-cache
 
 ## Why to use:
 - Fast in memory cache
-- Use both TTL (Time To Live), LRU (Least Recently Used) and maxBytes
+- Use both TTL (Time To Live) and LRU (Least Recently Used)
 - Could set an optional memory-size for each element and set a maximum size (bytes) for the whole cache
-- Do not use a bunch of "setTimeout" with decrease performance and none a permanent "setInterval"
+- Do not use a "setTimeout" for each element witch decrease the performance
+- Do not use "setInterval"
 - Uses a “Map” instead of traditional “Object”. This increase performance regardless inserts and removes
-- Could use any JavaScript type as a key (String, Numbers, BigInt, Objects, …) 
+- Could use any JavaScript type as a key (String, Numbers, BigInt, Objects, …)
+- Optimized for V8 engine (used by nodeJS and other backend frameworks)
 
 ## Usage
 ```javascript
@@ -89,7 +91,7 @@ const options= {
 	refreshOnGet: true,
 	/**
 	 * Maximum cache size in bytes
-	 * to use this, you need to add the size of each entrie
+	 * to use this, you need to add the size of each entry
 	 * via catch.set(key, value, bytes)
 	 * @type {Number}
 	 */
@@ -124,7 +126,7 @@ const LRU_TTL= require('lru-ttl-cache');
 const cache= new LRU_TTL({
 	/**
 	 * Set the maximum items count in the cache.
-	 * When this value exceeded, the lease used item will be removed
+	 * When this value exceeded, the least used item will be removed
 	 * Setting this to "Infinity" will disable the LRU behaviour of the cache
 	 * @type Number
 	 * @default Infinity
@@ -139,13 +141,14 @@ const cache= new LRU_TTL({
 });
 ```
 
-## Use as max bytes cache
+## Use as LRU with cache max bytes
 ```javascript
 const LRU_TTL= require('lru-ttl-cache');
 
 const cache= new LRU_TTL({
 	/**
 	 * Set the maximum memory size (in bytes) for the cache
+	 * Will remove the least used elements if this value is exceeded
 	 * Setting this to "Infinity" will disable this behaviour
 	 * @type Number
 	 * @default Infinity
