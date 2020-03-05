@@ -141,7 +141,7 @@ const cache= new LRU_TTL({
 });
 ```
 
-## Use as LRU with cache max bytes
+## Use as LRU cache with max bytes
 ```javascript
 const LRU_TTL= require('lru-ttl-cache');
 
@@ -163,9 +163,11 @@ cache.set('key', value, bytes);
 ```
 
 ## Use cache with multiple behaviours
+
 Just set the required configuration as options.
 
 # Credits
+
 Khalid RAFIK
 Open for contribution (open an issue).
 
