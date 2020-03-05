@@ -50,6 +50,12 @@ var element= cache.pop();
 <Boolean> cache.has('key');
 <Boolean> cache.has(mixedKey);
 
+// Get the size of the cache
+var entriesCount= cache.size;
+
+// Get estimated cache size in bytes
+var bytes= cache.bytes
+
 // Get all current kies
 <Iterator(key)> cache.keys();
 

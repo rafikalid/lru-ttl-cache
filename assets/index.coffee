@@ -193,3 +193,4 @@ module.exports= class LRU_TTL
 
 Object.defineProperties LRU_TTL.prototype,
 	size: get: -> @_map.size
+	bytes: get: -> @_totalBytes
