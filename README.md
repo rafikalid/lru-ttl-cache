@@ -79,6 +79,7 @@ const options= {
 	/**
 	 * Set the maximum entries in the cache for the LRU algorithm
 	 * remove the least used element when this is exceeded
+	 * Set to "0" to disable cache (Example: for development mode)
 	 * @default  Infinity
 	 */
 	max: Infinity,

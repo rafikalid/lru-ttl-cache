@@ -4,7 +4,10 @@ assets-test/*
 config/*
 doc/*
 tmp/*
-gulp-file.tmp.*
+gulpfile.js
+gulpfile/
+gulp-file.js
+gulp-compiled.tmp.js
 
 # Dependency directories
 node_modules/

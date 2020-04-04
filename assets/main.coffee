@@ -1,7 +1,7 @@
 ###*
  * LRU & TTL fast in-mermory cache
 ###
-module.exports= class LRU_TTL
+class LRU_TTL
 	###*
 	 * LRU & TTL cache
 	 * @param  {Integer} options.max		- Max entries in the cache. @default Infinity
@@ -32,8 +32,9 @@ module.exports= class LRU_TTL
 	setConfig: (options)->
 		if options
 			try
-				if vl= options.max
-					throw 'Options.max expected positive integer' unless (vl is Infinity) or (Number.isSafeInteger(vl) and vl>0)
+				if Reflect.has options, 'max'
+					vl= options.max
+					throw 'Options.max expected positive integer' unless (vl is Infinity) or (Number.isSafeInteger(vl) and vl>=0)
 					@_max= vl
 				if vl= options.ttl
 					throw 'Options.ttl expected positive integer' unless (vl is Infinity) or (Number.isSafeInteger(vl) and vl>0)
@@ -60,7 +61,7 @@ module.exports= class LRU_TTL
 			el.value= value
 			el.bytes= bytes
 			@_refresh el
-		else
+		else if @_max
 			lastElement= @_head
 			el=
 				value: value
@@ -190,7 +191,10 @@ module.exports= class LRU_TTL
 				@_tail= @_head= null
 		return
 
-
-Object.defineProperties LRU_TTL.prototype,
-	size: get: -> @_map.size
-	bytes: get: -> @_totalBytes
+	###*
+	 * GETTERS
+	###
+	```
+	get size(){return this._map.size}
+	get bytes(){return this._totalBytes}
+	```
