@@ -1,6 +1,6 @@
 {
   "name": "lru-ttl-cache",
-  "version": "1.2.0",
+  "version": "1.2.2",
   "description": "Fast LRU and TTL cache",
   "main": "build/index.js",
   "scripts": {
@@ -26,13 +26,14 @@
     "gulp": "^4.0.2",
     "gulp-chug": "^0.5.1",
     "gulp-coffeescript": "0.0.15",
-    "gulp-ejs": "^5.0.0",
+    "gulp-ejs": "^5.1.0",
     "gulp-error-handle": "^1.0.1",
-    "gulp-gridfw": "^1.0.0",
+    "gulp-gridfw": "^1.0.1",
     "gulp-include": "^2.4.1",
     "gulp-rename": "^1.4.0",
     "gulp-template": "^5.0.0",
     "gulp-terser": "^1.2.0",
     "gulp-util": "^3.0.8"
-  }
+  },
+  "dependencies": {}
 }

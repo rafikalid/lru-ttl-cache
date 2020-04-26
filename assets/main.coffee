@@ -56,8 +56,9 @@ class LRU_TTL
 	 * Add new entry
 	###
 	set: (key, value, bytes= 0)->
+		map= @_map
 		# Override if key already set
-		if el= @_map.get(key)
+		if el= map.get(key)
 			el.value= value
 			el.bytes= bytes
 			@_refresh el
@@ -73,12 +74,12 @@ class LRU_TTL
 			# Add
 			lastElement?.next= el
 			@_head= el
-			@_map.set key, el
+			map.set key, el
 			@_totalBytes+= bytes
 			# set tail as element if first one
 			@_tail?= el
 			# Remove oldest if exceeds count
-			do @pop if @_map.size > @_max
+			do @pop if map.size > @_max
 			# Remvove oldest element if exceeds max bytes
 			do @pop while @_totalBytes > @_maxBytes
 			# run TTL process if not yeat started
@@ -156,8 +157,7 @@ class LRU_TTL
 	###
 	_refresh: (el)->
 		el.time= Date.now() # refresh time
-		last= @_head
-		unless last is el
+		if (last= @_head) and (last isnt el)
 			# remove from chain
 			el.prev?.next= el.next
 			el.next?.prev= el.prev

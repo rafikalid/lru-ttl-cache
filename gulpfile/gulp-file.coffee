@@ -22,5 +22,6 @@ compiler
 		dest:	'build/'
 		watch:	['assets/browser.coffee', 'assets/main.coffee']
 		data:	params
-		babel:	<%- isProd %>
+		#TODO Check why babel do not work
+		# babel:	<%- isProd %>
 	.run()
