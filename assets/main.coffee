@@ -149,7 +149,7 @@ class LRU_TTL
 	###*
 	 * For each
 	###
-	forEach: (cb)-> @_map.forEach(cb)
+	forEach: (cb)-> @_map.forEach (v, k)-> cb(v.value, k)
 
 	###*
 	 * Refresh element

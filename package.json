@@ -1,8 +1,8 @@
 {
   "name": "lru-ttl-cache",
-  "version": "1.2.2",
+  "version": "1.2.4",
   "description": "Fast LRU and TTL cache",
-  "main": "build/index.js",
+  "main": "build/node.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
