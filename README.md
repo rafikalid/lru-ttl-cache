@@ -36,15 +36,25 @@ cache.set(mixedKey, mixedValue, bytes);
 cache.get('key');
 cache.get(mixedKey);
 
+// Remove least used element
+var element= cache.pop();
+
+/**
+ * Get value from the cache, or create one if not found
+ * @return value if options.upsert is a Sync function
+ * @return Promise if options.upsert is an Async function
+ */
+ // if options.upsert is a Sync function
+var value= myCache.upsert(key);
+// if options.upsert is an Async function
+var value= await myCache.upsert(key);
+
 // Remove element from the cache
 cache.delete('key');
 cache.delete(mixedKey);
 
 // Remove all elements
 cache.clear();
-
-// Remove least used element
-var element= cache.pop();
 
 // Check if the cache has a key
 <Boolean> cache.has('key');
@@ -68,8 +78,13 @@ var bytes= cache.bytes
 // ForEach
 cache.forEach(function callback(value, key){});
 
+// For ... of
+for([key, value] of cache){
+	/* Your logic */
+}
+
 // Change cache configuration
-cache.setConfiguration(options);
+cache.setConfig(options);
 ```
 
 ## Options:
@@ -102,7 +117,13 @@ const options= {
 	 * via catch.set(key, value, bytes)
 	 * @type {Number}
 	 */
-	maxBytes: Infinity
+	maxBytes: Infinity,
+	/**
+	 * Create item if not exists when using cache.upsert(key)
+	 * Could be function or async function
+	 * @type {Function, AsyncFunction}
+	 */
+	 upsert: function(key){ /*Logic*/ }
 };
 ```
 
@@ -122,7 +143,7 @@ const cache= new LRU_TTL({
 	 * when getting it. @default true
 	 * @type Boolean
 	 */
-	refreshOnGet: true 
+	refreshOnGet: true
 });
 ```
 
@@ -206,6 +227,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-
-

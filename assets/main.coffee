@@ -16,6 +16,7 @@ class LRU_TTL
 		@_ttl= Infinity
 		@_maxBytes= Infinity
 		@_refreshOnGet= yes
+		@_upsertCb= null
 		# underline map
 		@_totalBytes= 0 # Entries total bytes
 		@_map= new Map()
@@ -45,6 +46,9 @@ class LRU_TTL
 				if Reflect.has options, 'refreshOnGet'
 					throw 'Options.refreshOnGet expect boolean' unless typeof options.refreshOnGet is 'boolean'
 					@_refreshOnGet= options.refreshOnGet
+				# Upsert
+				if upsertCb= options.upsert
+					@_upsertCb= upsertCb
 				# run TTL process
 				do @_runTTL
 			catch err
@@ -112,6 +116,21 @@ class LRU_TTL
 			# return
 			return oldest.value
 		return
+	###*
+	 * Get value or create it
+	###
+	upsert: (key)->
+		if element= @_map.get key
+			@_refresh element if @_refreshOnGet
+			value= element.value
+		else if cb= @_upsertCb
+			value= cb key
+			@_set key, value
+			if value and typeof value.then is 'function'
+				value= value.then (v)=>
+					@_set key, v
+					return v
+		return value
 	###*
 	 * Remove entry
 	###
@@ -198,3 +217,13 @@ class LRU_TTL
 	get size(){return this._map.size}
 	get bytes(){return this._totalBytes}
 	```
+
+###* For of ###
+LRU_TTL::[Symbol.iterator]= ->
+	it= @_map[Symbol.iterator]() # Get map iterator
+	return {
+		next: ->
+			vl= it.next()
+			value: vl.value?.value
+			done: vl.done
+	}
