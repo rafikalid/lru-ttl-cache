@@ -60,35 +60,38 @@ class LRU_TTL
 	 * Add new entry
 	###
 	set: (key, value, bytes= 0)->
-		map= @_map
 		# Override if key already set
-		if el= map.get(key)
+		if el= @_map.get(key)
 			el.value= value
 			el.bytes= bytes
 			@_refresh el
 		else if @_max
-			lastElement= @_head
-			el=
-				value: value
-				key: key
-				bytes: bytes # entry bytes
-				prev: lastElement
-				next: null
-				time: Date.now() # insert time
-			# Add
-			lastElement?.next= el
-			@_head= el
-			map.set key, el
-			@_totalBytes+= bytes
-			# set tail as element if first one
-			@_tail?= el
-			# Remove oldest if exceeds count
-			do @pop if map.size > @_max
-			# Remvove oldest element if exceeds max bytes
-			do @pop while @_totalBytes > @_maxBytes
-			# run TTL process if not yeat started
-			do @_runTTL
+			@_set key, value, bytes
 		this # chain
+	_set: (key, value, bytes= 0)->
+		lastElement= @_head
+		map= @_map
+		el=
+			value: value
+			key: key
+			bytes: bytes # entry bytes
+			prev: lastElement
+			next: null
+			time: Date.now() # insert time
+		# Add
+		lastElement?.next= el
+		@_head= el
+		map.set key, el
+		@_totalBytes+= bytes
+		# set tail as element if first one
+		@_tail?= el
+		# Remove oldest if exceeds count
+		do @pop if map.size > @_max
+		# Remvove oldest element if exceeds max bytes
+		do @pop while @_totalBytes > @_maxBytes
+		# run TTL process if not yeat started
+		do @_runTTL
+		return
 	###*
 	 * Get entry
 	###
@@ -125,11 +128,12 @@ class LRU_TTL
 			value= element.value
 		else if cb= @_upsertCb
 			value= cb key
-			@_set key, value
-			if value and typeof value.then is 'function'
-				value= value.then (v)=>
-					@_set key, v
-					return v
+			if @_max
+				@_set key, value
+				if value and typeof value.then is 'function'
+					value.then (v)=>
+						@_set key, v
+						return
 		return value
 	###*
 	 * Remove entry
