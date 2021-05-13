@@ -56,5 +56,22 @@ describe('Cache Test', function(){
             cache.set('ky9', 'v');
             Assert.strictEqual(cache.size, cache.max);
         });
-    })
+    });
+
+	describe('TTL', function(){
+		it('Should delete item after 4 seconds', function(cb:Function){
+			this.timeout(5000);
+			var cache= new LRU_TTL({ttl:3000});
+			cache.set('k', 1);
+			cache.set('k2', 2);
+			cache.set('k3', 3);
+			cache.setPermanent('k5', 'hello world')
+			setTimeout(function(){
+				console.log('---k5>>', cache.get('k5'));
+				console.log('--size: ', cache.size)
+				cb(cache.tmpSize>0 ? new Error('Expected one element'): null)
+				
+			}, 4000)
+		});
+	})
 })

@@ -25,6 +25,9 @@ npm i -S lru-ttl-cache
 import LRU_TTL from 'lru-ttl-cache';
 // Or
 const LRU_TTL= require('lru-ttl-cache').default;
+
+// You can import from source too (ts file)
+import LRU_TTL from 'lru-ttl-cache/src';
 ```
 
 ## Create new Cache
@@ -66,7 +69,7 @@ const cache= new LRU_TTL({
 ```javascript
 const cache= new LRU_TTL();
 
-/** Get/Set max entries */
+/** Get/Set max temporary entries (exlude permanent entries) */
 cache.max
 
 /** Get/Set max bytes */
@@ -92,6 +95,9 @@ cache.tmpBytes
 
 /** Get total items */
 cache.size
+
+/** Get temporary items count */
+cache.tmpSize
 ```
 
 ## Methods
@@ -224,6 +230,20 @@ cache.forEach(function callback(value, key){}, optionalThisArg);
 for([key, value] of cache){
 	/* Your logic */
 }
+```
+
+## Metadata
+Get item metadata
+```javascript
+/** Get meta data of element with key: mixedKey */
+const {
+	value, // The cached item
+	key, // the key
+	bytes, // element bytes
+	createdAt, // timestamp of insert (milliseconds)
+	lastAccess, // timestamp of last access (milliseconds)
+	isPermanent // Is a permanent or temporary item
+}= catch.getMetadata(mixedKey);
 ```
 
 # Examples

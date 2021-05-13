@@ -5,6 +5,8 @@ import {src, dest, lastRun} from 'gulp';
 import * as GulpTypescript from 'gulp-typescript';
 import SrcMap from 'gulp-sourcemaps';
 import Path from 'path'
+import Uglify from 'gulp-terser';
+import GulpFilter from 'gulp-filter';
 
 import {transform} from 'ts-transform-import-path-rewrite'
 
@@ -58,10 +60,17 @@ const importPathsLen= importPaths.length;
 
 export default function(srcArg: string, destArg: string){
 	function compile(path: string){
-		return src(path, {nodir: true})
+		var glp= src(path, {nodir: true})
 		.pipe(SrcMap.init())
 		.pipe(TsProject())
-		.pipe(SrcMap.write('.'))
+		// Uglify
+		if(isProd){
+			var f= GulpFilter(['*.js'], {restore: true});
+			glp.pipe(f)
+				.pipe(Uglify())
+				.pipe(f.restore)
+		}
+		return glp.pipe(SrcMap.write('.'))
 		.pipe(dest(destArg));
 	}
 	return {

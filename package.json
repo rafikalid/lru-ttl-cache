@@ -1,10 +1,10 @@
 {
   "name": "lru-ttl-cache",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Fast LRU and TTL cache with upsert and promise option",
   "main": "build/index.js",
   "scripts": {
-    "test": "mocha"
+    "test": "gulp --nowatch & mocha"
   },
   "repository": {
     "type": "git",
@@ -25,12 +25,16 @@
   "homepage": "https://github.com/rafikalid/lru-ttl-cache#readme",
   "devDependencies": {
     "@types/gulp": "^4.0.8",
+    "@types/gulp-filter": "^3.0.33",
     "@types/gulp-sourcemaps": "0.0.34",
+    "@types/gulp-terser": "^1.2.1",
     "@types/mocha": "^8.2.2",
     "chalk": "^4.1.0",
     "cli-table": "^0.3.6",
     "gulp": "^4.0.2",
+    "gulp-filter": "^7.0.0",
     "gulp-sourcemaps": "^3.0.0",
+    "gulp-terser": "^2.0.1",
     "gulp-typescript": "^6.0.0-alpha.1",
     "mocha": "^8.4.0",
     "ts-node": "^9.1.1",

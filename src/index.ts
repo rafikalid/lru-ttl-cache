@@ -48,9 +48,12 @@ interface Node<K, V> extends NodeChain{
     isPermanent: Boolean
 }
 
+type NodeReadOnly<K,V>= Readonly<Node<K,V>>
+
 /** Main interface */
 export default class LRU_TTL<K, V> implements NodeChain{
     private _map: Map<K, Node<K, V>>= new Map<K, Node<K, V>>();
+	/** Max temp elements */
     private _max: number
     private _maxBytes: number // max bytes for temp entries
     /** TLL */
@@ -59,6 +62,8 @@ export default class LRU_TTL<K, V> implements NodeChain{
     private _ttlP?: NodeJS.Timeout= undefined;
     private _upsert?: ConstOptions<K,V>["upsert"]
 
+	/** Temp elements count */
+	private _tmpSize:number = 0;
     /** Total bytes inside the cache */
     private _totalBytes: number= 0
     /** Temp entries bytes */
@@ -67,8 +72,6 @@ export default class LRU_TTL<K, V> implements NodeChain{
     _next: NodeChain= this
     /** Least used element */
     _prev: NodeChain= this
-    /** Interval pointer */
-    private _intv= undefined
 
     constructor(options?: ConstOptions<K, V>){
         // Set config
@@ -84,6 +87,11 @@ export default class LRU_TTL<K, V> implements NodeChain{
             this._ttl= Infinity
             this._ttlInterval= 60000
         }
+		// fix ttl interval
+		if(this.ttlInterval > this.ttl)
+			this.ttlInterval= this.ttl;
+		// init chain
+		this._prev= this._next= this;
     }
 
     /** Set max */
@@ -99,6 +107,10 @@ export default class LRU_TTL<K, V> implements NodeChain{
     get ttlInterval(){ return this._ttlInterval }
     set ttlInterval(ttlInterval: number){
         this._ttlInterval= _getInt(ttlInterval, 'ttlInterval', 60000);
+		// fix ttl interval
+		if(this.ttlInterval > this.ttl)
+			this.ttlInterval= this.ttl;
+		// reload cleaner
         if(this._ttlP){
             clearInterval(this._ttlP);
             this._ttlP= setInterval(this._ttlClean.bind(this), this._ttlInterval);
@@ -115,6 +127,9 @@ export default class LRU_TTL<K, V> implements NodeChain{
 
     /** Get cache size */
     get size(): number{ return this._map.size }
+
+	/** Get temp elements count */
+	get tmpSize(): number{ return this._tmpSize }
 
     /** Check if cache has key */
     has(key: K){ return this._map.has(key) }
@@ -156,13 +171,15 @@ export default class LRU_TTL<K, V> implements NodeChain{
         // add to chain
         if(!isPermanent){
             var p= this._next;
+			p._prev= ele;
+			ele._next= p;
             ele._prev= this;
-            ele._next= p
             this._next= ele;
             // Flags
+			this._tmpSize++; // inc tmp counter
             this._tmpBytes+= bytes;
             // remove last permanent element
-            if(this._map.size > this._max)
+            if(this._tmpSize > this._max)
                 this._delete(this._prev as Node<K,V>) // Remove least used element
             // remove until maxBytes
             while(this._tmpBytes > this._maxBytes && this._prev!= this){
@@ -190,9 +207,10 @@ export default class LRU_TTL<K, V> implements NodeChain{
                 p._prev= p2
                 // bring forword
                 p= this._next
-                this._next= ele
+				p._prev= ele
                 ele._next= p;
                 ele._prev= this;
+                this._next= ele
             }
             return ele.value;
         } else if (upsert){
@@ -256,10 +274,12 @@ export default class LRU_TTL<K, V> implements NodeChain{
         var bytes= ele.bytes;
         if(!ele.isPermanent){
             var p = ele._next!;
-            p._prev= ele._prev;
-            ele._prev= p;
+			var p2= ele._prev!;
+            p._prev= p2;
+            p2._next= p;
             // adjust cache bytes
             this._tmpBytes-= bytes;
+			this._tmpSize--;
         }
         // Adjust total bytes
         this._totalBytes-= bytes;
@@ -277,13 +297,14 @@ export default class LRU_TTL<K, V> implements NodeChain{
         this._next= this._prev= this;
         this._totalBytes-= this._tmpBytes;
         this._tmpBytes= 0;
+		this._tmpSize= 0;
     }
 
     /** Clear all items in the cache including permanent items */
     clearAll(){
         this._next= this._prev= this;
         this._map.clear();
-        this._tmpBytes= this._totalBytes= 0;
+        this._tmpBytes= this._tmpSize= this._totalBytes= 0;
     }
 
     /** Get entries */
@@ -325,24 +346,24 @@ export default class LRU_TTL<K, V> implements NodeChain{
     _ttlClean(){
         // Find last node to keep
         var expires= Date.now() - this._ttl;
-        var p= this._prev;
+        var p= this._prev as Node<K,V>;
         var bytes= 0;
         var map= this._map;
-        while(p!== this && (p as Node<K,V>).lastAccess < expires){
-            bytes+= (p as Node<K,V>).bytes;
-            map.delete((p as Node<K,V>).key);
-            p= p._prev!;
+        while((p as NodeChain)!== this && p.lastAccess < expires){
+            bytes+= p.bytes;
+            map.delete(p.key);
+            p= p._prev as Node<K,V>;
         }
         // Remove other nodes
-        if(p===this){
+        if((p as NodeChain)===this){
             // Remove all nodes
             this._prev= this._next= this
             this._totalBytes-= bytes;
             if(this._totalBytes<0) this._totalBytes= 0
-            this._tmpBytes= 0;
+            this._tmpBytes= this._tmpSize= 0;
             // Break ttl
-            clearInterval(this._intv);
-            this._intv= undefined;
+            clearInterval(this._ttlP!);
+            this._ttlP= undefined;
         } else {
             this._prev= p;
             p._next= this;
@@ -358,6 +379,11 @@ export default class LRU_TTL<K, V> implements NodeChain{
             yield [entry.key, entry.value];
         }
     }
+
+	/** Get element metadata */
+	getMetadata(key: K): NodeReadOnly<K,V>|undefined{
+		return this._map.get(key);
+	}
 }
 
 
