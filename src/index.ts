@@ -6,7 +6,7 @@
  */
 
 /** Options */
-interface ConstOptions<K,V>{
+export interface ConstOptions<K,V>{
     /** Max entries @default Infinity */
     max?: number
     /** Max bytes @default Infinity */
@@ -16,11 +16,11 @@ interface ConstOptions<K,V>{
     /** TTL check interval. @default 60s */
     ttlInterval?:    number
     /** Upsert callback: enables to create missing elements */
-    upsert?:     ((key: K)=> UpserResult<V> | Promise<UpserResult<V>>) | undefined
+    upsert?:     ((key: K, additionalArgs?: any[])=> UpserResult<V> | Promise<UpserResult<V>>) | undefined
 }
 
 /** Upsert result */
-interface UpserResult<V>{
+export interface UpserResult<V>{
     value: V,
     bytes?: number,
     isPermanent?: boolean
@@ -193,7 +193,7 @@ export default class LRU_TTL<K, V> implements NodeChain{
     }
 
     /** Get element from the cache */
-    get(key: K, upsert?: boolean):V|Promise<V>|undefined{
+    get(key: K, upsert?: boolean, additionalUpsertCbArgs?: any[]):V|Promise<V>|undefined{
         var ele: Node<K, V>|undefined;
         var p: NodeChain;
         var p2: NodeChain;
@@ -216,7 +216,7 @@ export default class LRU_TTL<K, V> implements NodeChain{
         } else if (upsert){
             if(typeof this._upsert !== 'function')
                 throw new Error('Missing upsert callback!');
-            var upsertResult= this._upsert(key);
+            var upsertResult= this._upsert(key, additionalUpsertCbArgs);
             if(upsertResult instanceof Promise){
                 ele= this._set(key, upsertResult.then(({value})=> value), 0, true);
                 return upsertResult.then((r: UpserResult<V>)=>{
@@ -254,8 +254,13 @@ export default class LRU_TTL<K, V> implements NodeChain{
     }
 
     /** Upsert element in the cache */
-    upsert(key: K): V|Promise<V>{
-        return this.get(key, true)!;
+    upsert(
+		/** Cache key */
+		key: K,
+		/** Additional args for upsert callback */
+		... args: any[]
+	): V|Promise<V>{
+        return this.get(key, true, args)!;
     }
 
     /** Delete element from the cache */
