@@ -1,6 +1,6 @@
 {
   "name": "lru-ttl-cache",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "Fast LRU and TTL cache with upsert and promise option",
   "main": "build/index.js",
   "scripts": {
