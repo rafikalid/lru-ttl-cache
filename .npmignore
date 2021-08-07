@@ -1,13 +1,9 @@
 # dev files
-assets/*
-assets-test/*
-config/*
-doc/*
-tmp/*
+src/*
+test/*
+test-dist/*
 gulpfile.js
-gulpfile/
-gulp-file.js
-gulp-compiled.tmp.js
+gulp/*
 
 # Dependency directories
-node_modules/
+node_modules/*
