@@ -36,24 +36,29 @@ import LRU_TTL from 'lru-ttl-cache/src';
 const cache= new LRU_TTL();
 
 //or set options
+// We use packages "ms" and "bytes" to parse string literals
 const cache= new LRU_TTL({
 	/**
 	 * @Optional: max cache entries
+	 * @param {number}
 	 * @default Infinity
 	 */
 	max:	100,
 	/**
-	 * @Optional @Param {Number|String} maxBytes
+	 * @Optional
+	 * @Param {Number|String} maxBytes
 	 * Maximum allowed bytes
 	 */
-	maxBytes: 5 * 2**20, // 5MB
-	/**
-	 * @Optional @Param {Number} ttl
-	 * Time to live for temp entries in milliseconds
-	 */
-	ttl:	10 * 60 * 1000,
+	maxBytes: '5mb', // 5MB
 	/**
 	 * @Optional
+	 * @Param {Number|string}
+	 * Time to live for temp entries in milliseconds
+	 */
+	ttl:	'10m', // 10 minutes
+	/**
+	 * @Optional
+	 * @param {number|string}
 	 * Interval for checking TTL
 	 */
 	ttlInterval: 60000,

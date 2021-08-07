@@ -1,6 +1,6 @@
 {
   "name": "lru-ttl-cache",
-  "version": "2.1.0",
+  "version": "2.3.0",
   "description": "Fast LRU and TTL cache with upsert and promise option",
   "main": "build/index.js",
   "scripts": {
@@ -24,11 +24,14 @@
   },
   "homepage": "https://github.com/rafikalid/lru-ttl-cache#readme",
   "devDependencies": {
+    "@types/bytes": "^3.1.1",
     "@types/gulp": "^4.0.8",
     "@types/gulp-filter": "^3.0.33",
     "@types/gulp-sourcemaps": "0.0.34",
     "@types/gulp-terser": "^1.2.1",
     "@types/mocha": "^8.2.2",
+    "@types/ms": "^0.7.31",
+    "@types/node": "^16.4.13",
     "chalk": "^4.1.0",
     "cli-table": "^0.3.6",
     "gulp": "^4.0.2",
@@ -41,5 +44,8 @@
     "ts-transform-import-path-rewrite": "^0.3.0",
     "typescript": "^4.2.4"
   },
-  "dependencies": {}
+  "dependencies": {
+    "bytes": "^3.1.0",
+    "ms": "^2.1.3"
+  }
 }

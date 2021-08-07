@@ -1,3 +1,5 @@
+import MS from 'ms';
+import Bytes from 'bytes';
 /**
  * LRU & TTL fast in-mermory cache
  * Promise supported
@@ -10,11 +12,11 @@ export interface ConstOptions<K,V>{
     /** Max entries @default Infinity */
     max?: number
     /** Max bytes @default Infinity */
-    maxBytes?: number
+    maxBytes?: number|string
     /** Time to live @default Infinity */
-    ttl?:    number
+    ttl?:    number|string
     /** TTL check interval. @default 60s */
-    ttlInterval?:    number
+    ttlInterval?:    number|string
     /** Upsert callback: enables to create missing elements */
     upsert?:     ((key: K, additionalArgs?: any[])=> UpserResult<V> | Promise<UpserResult<V>>) | undefined
 }
@@ -76,16 +78,23 @@ export default class LRU_TTL<K, V> implements NodeChain{
     constructor(options?: ConstOptions<K, V>){
         // Set config
         if(options){
-            this._max= _getInt(options.max, 'options.max', Infinity);
-            this._maxBytes= _getInt(options.maxBytes, 'options.maxBytes', Infinity);
-            this._ttl= _getInt(options.ttl, 'options.ttl', Infinity);
-            this._ttlInterval= _getInt(options.ttlInterval, 'options.ttlInterval', 60000)
-            this._upsert= options.upsert
+            // max entries
+            this._max= options.max==null? Infinity : options.max;
+            // max bytes
+            var a: string|number|undefined= options.maxBytes;
+            this._maxBytes= a==null? Infinity : typeof a=== 'number' ? a : Bytes.parse(a);
+            // TTL
+            a= options.ttl;
+            this._ttl= a==null? Infinity : typeof a=== 'number' ? a : MS(a);
+            // TTL interval
+            a= options.ttlInterval;
+            this._ttlInterval= a==null? Infinity : typeof a=== 'number' ? a : MS(a);
+            this._upsert= options.upsert;
         } else {
-            this._max= Infinity
-            this._maxBytes= Infinity
-            this._ttl= Infinity
-            this._ttlInterval= 60000
+            this._max= Infinity;
+            this._maxBytes= Infinity;
+            this._ttl= Infinity;
+            this._ttlInterval= 60000;
         }
 		// fix ttl interval
 		if(this.ttlInterval > this.ttl)
@@ -96,17 +105,23 @@ export default class LRU_TTL<K, V> implements NodeChain{
 
     /** Set max */
     get max(){return this._max}
-    set max(max: number){ this._max= _getInt(max, 'max', Infinity) }
+    set max(max: number){
+        this._max= max
+    }
 
     get maxBytes(){ return this._maxBytes }
-    set maxBytes(maxBytes: number){ this._maxBytes= _getInt(maxBytes, 'maxBytes', Infinity) }
+    set maxBytes(maxBytes: number|string){
+        this._maxBytes= typeof maxBytes === 'number'? maxBytes : Bytes.parse(maxBytes);
+    }
 
     get ttl(){ return this._ttl }
-    set ttl(ttl: number){ this._ttl= _getInt(ttl, 'ttl', Infinity) }
+    set ttl(ttl: number|string){
+        this._ttl= typeof ttl ==='number' ? ttl : MS(ttl);
+    }
 
     get ttlInterval(){ return this._ttlInterval }
-    set ttlInterval(ttlInterval: number){
-        this._ttlInterval= _getInt(ttlInterval, 'ttlInterval', 60000);
+    set ttlInterval(ttlInterval: number|string){
+        this._ttlInterval= typeof ttlInterval==='number' ? ttlInterval : MS(ttlInterval);
 		// fix ttl interval
 		if(this.ttlInterval > this.ttl)
 			this.ttlInterval= this.ttl;
@@ -389,15 +404,4 @@ export default class LRU_TTL<K, V> implements NodeChain{
 	getMetadata(key: K): NodeReadOnly<K,V>|undefined{
 		return this._map.get(key);
 	}
-}
-
-
-/** Check and return valid integer */
-function _getInt(arg:number|undefined, attr: string, defaultValue: any){
-    if(arg== null)
-        return defaultValue
-    else if((Number.isSafeInteger(arg) && arg>0) || arg===Infinity)
-        return arg
-    else
-        throw new Error(`Expected positive integer for: ${attr}. Got: ${arg}`)
 }
