@@ -243,8 +243,10 @@ export default class LRU_TTL<K, V> implements NodeChain{
                     return r.value;
                 });
             }
-            else
+            else {
                 this._set(key, upsertResult.value, upsertResult.bytes||0, !!upsertResult.isPermanent);
+                return upsertResult.value;
+            }
         }
         else return undefined;
     }
