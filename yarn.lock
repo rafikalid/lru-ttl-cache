@@ -56,6 +56,14 @@
     "@types/node" "*"
     "@types/vinyl" "*"
 
+"@types/gulp-rename@^2.0.1":
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/@types/gulp-rename/-/gulp-rename-2.0.1.tgz#c8228fc2c5c4a7500346ea9ce18f27fa988caef5"
+  integrity sha512-9ZjeS2RHEnmBmTcyi2+oeye3BgCsWhvi4uv3qCnAg8i6plOuRdaeNxjOves0ELysEXYLBl7bCl5fbVs7AZtgTA==
+  dependencies:
+    "@types/node" "*"
+    "@types/vinyl" "*"
+
 "@types/gulp-sourcemaps@0.0.34":
   version "0.0.34"
   resolved "https://registry.yarnpkg.com/@types/gulp-sourcemaps/-/gulp-sourcemaps-0.0.34.tgz#af63e5317425b96a90ad295d01377dfcf1f5efdc"
@@ -1312,6 +1320,11 @@ gulp-filter@^7.0.0:
     plugin-error "^1.0.1"
     streamfilter "^3.0.0"
     to-absolute-glob "^2.0.2"
+
+gulp-rename@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/gulp-rename/-/gulp-rename-2.0.0.tgz#9bbc3962b0c0f52fc67cd5eaff6c223ec5b9cf6c"
+  integrity sha512-97Vba4KBzbYmR5VBs9mWmK+HwIf5mj+/zioxfZhOKeXtx5ZjBk57KFlePf5nxq9QsTtFl0ejnHE3zTC9MHXqyQ==
 
 gulp-sourcemaps@^3.0.0:
   version "3.0.0"
@@ -2919,6 +2932,11 @@ typedarray@^0.0.6:
   version "0.0.6"
   resolved "https://registry.yarnpkg.com/typedarray/-/typedarray-0.0.6.tgz#867ac74e3864187b1d3d47d996a78ec5c8830777"
   integrity sha1-hnrHTjhkGHsdPUfZlqeOxciDB3c=
+
+typescript-path-fix@^1.0.5:
+  version "1.0.5"
+  resolved "https://registry.yarnpkg.com/typescript-path-fix/-/typescript-path-fix-1.0.5.tgz#db9dcf453077bde7a4b4c6a2d965848e3d2a75b4"
+  integrity sha512-vhPq6OJLQTvTIHpOosRJPT9b6WQ5dxzv7AS2ZXSGJlC5cVy9d8qp34w1FOxqir18kDCJhciVDgOleYiAbjz+ZQ==
 
 typescript@4, typescript@^4.2.4:
   version "4.3.5"

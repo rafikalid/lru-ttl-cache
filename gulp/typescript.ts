@@ -4,54 +4,53 @@
 import Gulp from 'gulp';
 import GulpTypescript from 'gulp-typescript';
 import SrcMap from 'gulp-sourcemaps';
-import {createImportTransformer} from './typescript-transformer.js';
-import JSON5 from 'json5';
-import {readFileSync} from 'fs';
+import { Converter } from 'typescript-path-fix';
+import GulpRename from 'gulp-rename';
 
-const {src, dest, lastRun}= Gulp;
-const {parse}= JSON5;
-
+const { src, dest, lastRun } = Gulp;
 // import {transform} from 'ts-transform-import-path-rewrite'
 
-//Load config
-const tsConfig= parse(readFileSync('tsconfig.json', 'utf-8'));
-const importTransformer= createImportTransformer(tsConfig.compilerOptions);
+const isProd = process.argv.includes('--prod');
 
-const isProd= process.argv.includes('--prod');
+const tsPathFix = new Converter('tsconfig.json');
 
 const TsProject = GulpTypescript.createProject('tsconfig.json', {
 	removeComments: isProd,
 	pretty: !isProd,
-	getCustomTransformers: ()=>({
-		after: [
-			importTransformer
-		]
-	})
+	target: 'ESNext',
+	module: 'ESNext',
+	moduleResolution: 'node'
 });
-
-const TsProjectTest = GulpTypescript.createProject('tsconfig.json', {
+const TsProjectCommonjs = GulpTypescript.createProject('tsconfig.json', {
 	removeComments: isProd,
 	pretty: !isProd,
-	getCustomTransformers: ()=>({
-		after: [
-			importTransformer
-		]
-	})
+	target: 'ES2015',
+	module: 'CommonJS'
 });
 
-// import babel from 'gulp-babel';
-export function typescriptCompile(){
-	return src('src/**/*.ts', {nodir: true, since: lastRun(typescriptCompile)})
+/** Compile as EsNext */
+export function compileEsNext() {
+	return src('src/**/*.ts', {
+		nodir: true,
+		since: lastRun(compileEsNext)
+	})
 		.pipe(SrcMap.init())
 		.pipe(TsProject())
+		.pipe(GulpRename({ extname: '.mjs' }))
+		.pipe(tsPathFix.gulp('.mjs'))
 		.pipe(SrcMap.write('.'))
-		.pipe(dest('dist'));
+		.pipe(dest('dist/module'));
 }
 
-export function compileTestFiles(){
-	return src('test/**/*.ts', {nodir: true, since: lastRun(compileTestFiles)})
+/** Compile as Commonjs */
+export function compileCommonjs() {
+	return src('src/**/*.ts', {
+		nodir: true,
+		since: lastRun(compileCommonjs)
+	})
 		.pipe(SrcMap.init())
-		.pipe(TsProjectTest())
+		.pipe(tsPathFix.gulp())
+		.pipe(TsProjectCommonjs())
 		.pipe(SrcMap.write('.'))
-		.pipe(dest('dist-test'));
+		.pipe(dest('dist/commonjs'));
 }
