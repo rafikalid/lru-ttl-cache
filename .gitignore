@@ -106,3 +106,4 @@ dist
 /dist
 /gulp-dist
 /test-dist
+/test-reports/*

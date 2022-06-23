@@ -1,9 +1,9 @@
 # dev files
-src/*
-test/*
+dist/**/*.test.*
 test-dist/*
 gulpfile.js
 gulp/*
 
 # Dependency directories
 node_modules/*
+test-reports/*

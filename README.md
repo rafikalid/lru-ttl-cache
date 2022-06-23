@@ -1,21 +1,29 @@
 # lru-ttl-cache
 Super fast Optimized in memory LRU and TTL cache.
-Can store permanent entries too
+- LRU cache: Removes Least Recently Used items
+- TTL cache: Removes expired item (Time To Live cache)
+- Permanent items: Items marked as permanent are not removed from the cache until you do it yourself
+
+You can combine all cache behaviors or use the one you need.
 
 # Why to use:
 - Fast in memory cache
 - Use both TTL (Time To Live) and LRU (Least Recently Used)
-- Can store permanent items
+- Can store permanent items (Could be removed explicitly by calling ::delete)
 - Could set an optional memory-size for each element and set a maximum size (bytes) for the whole cache
-- Supports element upsert
-- Do not use a "setTimeout" for each element witch increase the performance
-- Uses a “Map” instead of traditional “Object”. This increase performance regardless inserts and removes
+- Supports element upsert (Create an item if it does not exist)
+- Don't use a "setTimeout" for each item which increases performance
+- Uses a "HashMap" instead of a plain JavaScript object. This increases performance regardless of insertions and deletions.
 - Could use any JavaScript type as a key (String, Numbers, BigInt, Objects, …)
 - Optimized for V8 engine (used by nodeJS and other backend frameworks)
+- 0 dependencies
+- 100% JavaScript implementation
 
 ## Installation
 ```shell
 npm i -S lru-ttl-cache
+# or via yarn
+yarn add lru-ttl-cache
 ```
 
 # Usage
@@ -23,7 +31,8 @@ npm i -S lru-ttl-cache
 ## Import
 ```javascript
 import LRU_TTL from 'lru-ttl-cache';
-// Or
+
+// Or via require
 const LRU_TTL= require('lru-ttl-cache').default;
 
 // You can import from source too (ts file)
@@ -32,41 +41,47 @@ import LRU_TTL from 'lru-ttl-cache/src';
 
 ## Create new Cache
 ```javascript
-// Create the cache
+// Create the cache using default options
 const cache= new LRU_TTL();
 
-//or set options
+// or set options
 // We use packages "ms" and "bytes" to parse string literals
 const cache= new LRU_TTL({
 	/**
-	 * @Optional: max cache entries
+	 * @Optional max cache entries
 	 * @param {number}
 	 * @default Infinity
 	 */
 	max:	100,
 	/**
-	 * @Optional
+	 * @Optional max bytes
 	 * @Param {Number|String} maxBytes
 	 * Maximum allowed bytes
 	 */
 	maxBytes: '5mb', // 5MB
 	/**
-	 * @Optional
+	 * @Optional Time To Live in milliseconds (removes entry if not used after this time)
 	 * @Param {Number|string}
-	 * Time to live for temp entries in milliseconds
+	 * @default Infinity
 	 */
 	ttl:	'10m', // 10 minutes
 	/**
-	 * @Optional
+	 * @Optional Interval for checking TTL. Required "ttl" to be set. We recommend to keep the default value.
 	 * @param {number|string}
-	 * Interval for checking TTL
+	 * @default 10s
 	 */
-	ttlInterval: 60000,
+	ttlInterval: '60s',
 	/**
 	 * @Optional
 	 * Create value if not exists, @see ::upsert method
+	 * Could be synchronous or Asynchronous or returns promise
 	 */
-	upsert: async function(key){ /* Logic */}
+	upsert: function(key){ /* Logic */}
+	/** 
+	 * You can add additional arguments to upsert.
+	 * See "upsert" section for details
+	 */
+	upsert: function(key, userAdditionalArgs?: any[]){ /* Logic */}
 });
 ```
 
@@ -74,13 +89,13 @@ const cache= new LRU_TTL({
 ```javascript
 const cache= new LRU_TTL();
 
-/** Get/Set max temporary entries (exlude permanent entries) */
+/** Get/Set max temporary entries (permanent entries are not counted) */
 cache.max
 
-/** Get/Set max bytes */
+/** Get/Set max bytes (permanent entries are counted) */
 cache.maxBytes
 
-/** Get/Set TTL */
+/** Get/Set Time To Live in milliseconds or as string */
 cache.ttl
 
 /**
@@ -113,14 +128,14 @@ const cache= new LRU_TTL();
 
 /**
  * Add temporary item to the cache (TTL or LRU)
- * @Param MixedKey	- Any javascript type
- * @Param MixedValue - Any javascript value
+ * @Param MixedKey	- Any javascript type (string, number, object, function, ...)
+ * @Param MixedValue - Any javascript type (string, number, object, function, ...)
  */
 cache.set(MixedKey, MixedValue);
 
 /**
  * Add Optional bytes
- * @Param {Integer} MixedValue_Size	- Size of mixedValue, used if cache is about files for example
+ * @Param {Integer} MixedValue_Size	- Size of mixedValue, used if the cache concerns files for example
  */
 cache.set(MixedValue, MixedValue, MixedValue_Size);
 
@@ -136,27 +151,26 @@ cache.setPermanent(MixedKey, MixedValue);
  * Get element from cache
  * @return value or undefined
  */
-cache.get(mixedKey);
+const item= cache.get(mixedKey);
 
 /**
- * Get element from cache without updating
- * it's TLL or LRU
+ * Get element from cache without updating it's TLL or LRU
  * (Means not affect TTL or LRU)
  * @return value or undefined
  */
-cache.peek(mixedKey);
+const item= cache.peek(mixedKey);
 
 /**
- * Get least recently used item
+ * Get least recently used temporary item
  * permanent items are not included
  */
-cache.getLRU()
+const item= cache.getLRU();
 
 /**
- * Get least recently used item and removes it
- * Permanenet items are not included
+ * Get the least recently used temporary item and delete it
+ * Permanent items are not included
  */
-cache.pop()
+const item= cache.pop();
 ```
 
 ### Check key exists
@@ -166,18 +180,22 @@ cache.has(mixedKey)
 
 ### Upsert item (create it if not exist)
 
-#### Sync mode: 
+#### Synchronous mode: 
+Get/Create item in synchronous mode
+If you don't really need to use "await", use this mode. "await" is useful but it is slow even when used with synchronous functions.
+
 ```javascript
 // You need to set "upsert" callback logic when creating the cache
 const cache= new LRU_TTL({
-	upsert: function(key){ /* Logic */ }
+	upsert: function(key){
+		let data;
+		/* Write your Logic */
+		return data;
+	}
 });
 
 // Or set it using ::upsertCb
-cache.upsertCb= function(key){ /* Logic */};
-
-/** Using ::get*/
-var item= cache.get(mixedKey, true);
+cache.upsertCb= function(key){ /* Your Logic */};
 
 /** Using ::upsert */
 var item= cache.upsert(mixedKey);
@@ -187,17 +205,34 @@ var item= cache.upsert(mixedKey);
 ```javascript
 // You need to set "upsert" callback logic when creating the cache
 const cache= new LRU_TTL({
-	upsert: async function(key){ /* Logic */ }
+	upsert: async function(key){ /* Return Logic */ }
 });
 
 // Or set it using ::upsertCb
 cache.upsertCb= async function(key){ /* Logic */};
 
-/** Using ::get */
-var item= await cache.get(mixedKey, true);
-
 /** Using ::upsert */
-var item= await cache.upsert(mixedKey);
+const item= await cache.upsert(mixedKey);
+```
+
+#### Add additional arguments
+You can add additional arguments to be used when creating missing items as follow:
+
+```typescript
+// You need to set "upsert" callback logic when creating the cache
+const cache= new LRU_TTL({
+	upsert: function(key, userAdditionalArgs: any[]){
+		let data;
+		/* Write your Logic */
+		return data;
+	}
+});
+
+// Or set it using ::upsertCb
+cache.upsertCb= function(key, userAdditionalArgs?: any[]){ /* Your Logic */};
+
+/** Arguments added after "mixedKey" will be grouped in an array and set as the second argument of "upsertCb" */
+const item= cache.upsert(mixedKey, additionalArg1, additionalArg2, ...);
 ```
 
 ### Remove item
@@ -207,7 +242,7 @@ cache.delete(mixedKey);
 
 ### Clear items
 ```javascript
-/** Remove items excluding permanents */
+/** Remove all temporary items */
 cache.clearTemp();
 
 /** Remove all items */
@@ -215,21 +250,21 @@ cache.clearAll();
 ```
 
 ## Iterators
-```javascript
-/** Get all kies */
+```typescript
+/** Get an iterator on keys */
 <Iterator(key)> cache.keys();
 
-/** Get all values */
+/** Get an iterator on values */
 <Iterator(value)> cache.values();
 
-/** Get all entries */
+/** Get entries iterator */
 <Iterator([key, value])> cache.entries();
 ```
 
 ## Loops
 ```javascript
 /** ForEach */
-cache.forEach(function callback(value, key){}, optionalThisArg);
+cache.forEach(function callback(value, key, cache){ /* Loop logic */ }, optionalThisArg);
 
 /** For ... of */
 for([key, value] of cache){
@@ -260,10 +295,10 @@ const LRU_TTL= require('lru-ttl-cache');
 const cache= new LRU_TTL({
 	/**
 	 * Set the TTL (time to live in milliseconds)
-	 * Setting this to "Infinity" will disable the TTL behaviour of the cache
-	 * @type Positive integer
+	 * Setting this to "Infinity" will disable the TTL behaviors of the cache
+	 * @type Positive integer or string
 	 */
-	ttl: 3600000
+	ttl: '1h'
 });
 ```
 
@@ -275,7 +310,7 @@ const cache= new LRU_TTL({
 	/**
 	 * Set the maximum items count in the cache.
 	 * When this value exceeded, the least used item will be removed
-	 * Setting this to "Infinity" will disable the LRU behaviour of the cache
+	 * Setting this to "Infinity" will disable the LRU behaviors of the cache
 	 * @type Number
 	 * @default Infinity
 	 */
@@ -291,11 +326,11 @@ const cache= new LRU_TTL({
 	/**
 	 * Set the maximum memory size (in bytes) for the cache
 	 * Will remove the least used elements if this value is exceeded
-	 * Setting this to "Infinity" will disable this behaviour
+	 * Setting this to "Infinity" will disable this behaviors
 	 * @type Number
 	 * @default Infinity
 	 */
-	maxBytes: 2**20, // 1MB
+	maxBytes: '5mb', // 5MB
 });
 
 // Expects a size of each element when inserting or updating it
@@ -304,7 +339,7 @@ cache.set('key', value, bytes);
 
 ```
 
-## Use cache with multiple behaviours
+## Use cache with multiple behaviors
 
 Just enable the required configuration.
 
@@ -313,16 +348,18 @@ Just enable the required configuration.
 Khalid RAFIK
 
 # Let's contribute
-Open an issue or contact me: khalid.rfk@gmail.com
+Open an issue
+Create a "fork" and than a "Pull Request"
+contact me: khalid.rfk@gmail.com
 
 # Support
 Open an issue or contact me: khalid.rfk@gmail.com
 
-# Licence
+# License
 
 MIT License
 
-Copyright (c) 2021 rafikalid
+Copyright (c) 2021 khalid RAFIK
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

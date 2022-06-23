@@ -1,7 +1,6 @@
 import Gulp from 'gulp';
 
 import { compileEsNext, compileCommonjs } from './typescript.js';
-// import { compileTest } from './test-files.js';
 
 const { watch, series } = Gulp;
 
@@ -13,7 +12,6 @@ const doWatch = argv.includes('--watch');
 function watchCb(cb: Function) {
 	if (doWatch) {
 		watch('src/**/*.ts', compileEsNext);
-		// watch('src/app/graphql/schema/**/*.gql', graphQlCompile)
 	}
 	cb();
 }
