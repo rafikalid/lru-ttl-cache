@@ -1,26 +1,23 @@
 import Gulp from 'gulp';
-
-import { compileEsNext, compileCommonjs } from './typescript.js';
+import { compileBenchMark, compileSrcCommonjs, compileSrcEsm } from './typescript';
 
 const { watch, series } = Gulp;
 
 const argv = process.argv;
-const isProd = argv.includes('--prod');
 const doWatch = argv.includes('--watch');
+const isProd = argv.includes('--prod');
+const compileBenchmarking = argv.includes('--benchmark');
 
 /** Watch modified files */
 function watchCb(cb: Function) {
 	if (doWatch) {
-		watch('src/**/*.ts', compileEsNext);
+		watch('src/**/*.ts', compileSrcEsm);
 	}
 	cb();
 }
 
-var tasks: any[];
-if (isProd) {
-	tasks = [compileEsNext, compileCommonjs, watchCb];
-} else {
-	tasks = [compileEsNext, watchCb];
-}
+const tasks = [compileSrcEsm, watchCb];
+if (isProd) tasks.push(compileSrcCommonjs);
+if (compileBenchmarking) tasks.push(compileBenchMark);
 
 export default series(tasks);

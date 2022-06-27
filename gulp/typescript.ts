@@ -4,15 +4,12 @@
 import Gulp from 'gulp';
 import GulpTypescript from 'gulp-typescript';
 import SrcMap from 'gulp-sourcemaps';
-import { Converter } from 'typescript-path-fix';
 import GulpRename from 'gulp-rename';
 
 const { src, dest, lastRun } = Gulp;
 // import {transform} from 'ts-transform-import-path-rewrite'
 
 const isProd = process.argv.includes('--prod');
-
-const tsPathFix = new Converter('tsconfig.json');
 
 const TsProject = GulpTypescript.createProject('tsconfig.json', {
 	removeComments: isProd,
@@ -29,28 +26,46 @@ const TsProjectCommonjs = GulpTypescript.createProject('tsconfig.json', {
 });
 
 /** Compile as EsNext */
-export function compileEsNext() {
+export function compileSrcEsm() {
 	return src('src/**/*.ts', {
 		nodir: true,
-		since: lastRun(compileEsNext)
+		since: lastRun(compileSrcEsm)
 	})
 		.pipe(SrcMap.init())
 		.pipe(TsProject())
 		.pipe(GulpRename({ extname: '.mjs' }))
-		.pipe(tsPathFix.gulp('.mjs'))
 		.pipe(SrcMap.write('.'))
 		.pipe(dest('dist/module'));
 }
 
 /** Compile as Commonjs */
-export function compileCommonjs() {
+export function compileSrcCommonjs() {
 	return src('src/**/*.ts', {
 		nodir: true,
-		since: lastRun(compileCommonjs)
+		since: lastRun(compileSrcCommonjs)
 	})
 		.pipe(SrcMap.init())
-		.pipe(tsPathFix.gulp())
 		.pipe(TsProjectCommonjs())
 		.pipe(SrcMap.write('.'))
 		.pipe(dest('dist/commonjs'));
+}
+
+/** Compile benchmarks */
+export function compileBenchMark() {
+	const TsProject = GulpTypescript.createProject('tsconfig.json', {
+		removeComments: isProd,
+		pretty: !isProd,
+		target: 'ESNext',
+		module: 'ESNext',
+		moduleResolution: 'node',
+		declarationFiles: false
+	});
+
+	return src('benchmark-src/**/*.ts', {
+		nodir: true,
+		since: lastRun(compileBenchMark)
+	})
+		.pipe(TsProject())
+		.pipe(GulpRename({ extname: '.mjs' }))
+		.pipe(dest('benchmark'));
 }

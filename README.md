@@ -1,5 +1,6 @@
 # lru-ttl-cache
 Super fast Optimized in memory LRU and TTL cache.
+Works with all javascript environments including Node.js and browsers.
 - LRU cache: Removes Least Recently Used items
 - TTL cache: Removes expired item (Time To Live cache)
 - Permanent items: Items marked as permanent are not removed from the cache until you do it yourself
@@ -19,10 +20,19 @@ You can combine all cache behaviors or use the one you need.
 - 0 dependencies
 - 100% JavaScript implementation
 
+# Compared to others?
+- The maximum number of cache entries is 134 million. Others only support less than a million
+- The only cache that supports any type as a key. Others only supports strings.
+- The only cache that supports creating missing items in both synchronized and asynchronous modes.
+- The fastest javascript cache (@see benchmarking)
+- The lowest memory usage (@see benchmarking)
+
 ## Installation
 ```shell
-npm i -S lru-ttl-cache
-# or via yarn
+# Via npm
+npm install lru-ttl-cache --save
+
+# Or via yarn
 yarn add lru-ttl-cache
 ```
 

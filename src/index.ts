@@ -88,7 +88,7 @@ export default class LRU_TTL<K, V> implements NodeChain {
             this._ttl = a == null ? Infinity : typeof a === 'number' ? a : MS(a);
             // TTL interval
             a = options.ttlInterval;
-            this._ttlInterval = a == null ? Infinity : typeof a === 'number' ? a : MS(a);
+            this._ttlInterval = a == null ? 60000 : typeof a === 'number' ? a : MS(a);
             this._upsert = options.upsert;
         } else {
             this._max = Infinity;
@@ -203,7 +203,7 @@ export default class LRU_TTL<K, V> implements NodeChain {
                 this._delete(this._prev as Node<K, V>);
             }
             // Run TTL
-            if (!this._ttlP)
+            if (!this._ttlP && Number.isSafeInteger(this.ttl))
                 this._ttlP = setInterval(this._ttlClean.bind(this), this._ttlInterval)
         }
         return ele;

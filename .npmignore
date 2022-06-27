@@ -3,6 +3,7 @@ dist/**/*.test.*
 test-dist/*
 gulpfile.js
 gulp/*
+benchmark-src/*
 
 # Dependency directories
 node_modules/*
