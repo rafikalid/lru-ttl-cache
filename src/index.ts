@@ -1,412 +1,304 @@
 import MS from 'ms';
 import Bytes from 'bytes';
-/**
- * LRU & TTL fast in-memory cache
- * Promise supported
- * Upsert supported
- * Permanent items supported
- */
 
-/** Options */
-export interface ConstOptions<K, V> {
-    /** Max entries @default Infinity */
-    max?: number
-    /** Max bytes @default Infinity */
-    maxBytes?: number | string
-    /** Time to live @default Infinity */
-    ttl?: number | string
-    /** TTL check interval. @default 60s */
-    ttlInterval?: number | string
-    /** Upsert callback: enables to create missing elements */
-    upsert?: ((key: K, additionalArgs?: any[]) => UpsertResult<V> | Promise<UpsertResult<V>>) | undefined
+/** Cache Options */
+export interface Options<K, V> {
+	/**
+	 * Max entries as Positive integer
+	 * Or max weight as Positive integer
+	 * Or max bytes as Positive integer or string
+	 * see examples below for each implementation
+	 * @default Infinity
+	 */
+	max?: number | string
+	/**
+	 * Time to live
+	 * @default Infinity
+	 */
+	ttl?: number | string
+	/**
+	 * Items will be removed within the interval [ttl, ttl + ttlResolution]
+	 * 1 <= ttlResolution <= ttl
+	 * @default ttl/10
+	 */
+	ttlResolution?: number | string
+	/**
+	 * Upsert callback
+	 * Enables to create missing elements when using
+	 * "cache::upsert(key)" instead of "cache::get(key)"
+	 * Could synchronous or asynchronous
+	 * Could return promise
+	 * @param {mixed} key - Any javascript type as a key
+	 * @param {mixed} additional arguments. could be list of arguments. It's the second argument of "cache.upsert(key, additionalArgs)"
+	 */
+	onUpsert?: (key: K, additionalArgs?: any[]) => UpsertResult<V> | Promise<UpsertResult<V>>
 }
 
 /** Upsert result */
 export interface UpsertResult<V> {
-    value: V,
-    bytes?: number,
-    isPermanent?: boolean
+	/**
+	 * Target value
+	 */
+	value: V,
+	/**
+	 * The weight of the item,
+	 * @default 1
+	 */
+	weight?: number,
+	/**
+	 * If the item is a temporary or permanent
+	 * (means could be removed by the ttl and lru algorithm or not)
+	 * @default false
+	 */
+	isPermanent?: boolean
 }
 
-/** NodeChain */
-interface NodeChain {
-    /** Previous element */
-    _prev?: NodeChain,
-    /** Next element */
-    _next?: NodeChain
+/** Linked Node */
+interface LinkedNode<K, V> {
+	_next: LinkedNode<K, V> | undefined
+	_prev: LinkedNode<K, V> | undefined
 }
 
-/** Node interface for LRU */
-interface Node<K, V> extends NodeChain {
-    value: V | Promise<V>
-    key: K
-    /** Object size */
-    bytes: number
-    /** Created timestamp */
-    createdAt: number
-    /** Last access */
-    lastAccess: number
-    /** Is permanent node */
-    isPermanent: Boolean
+/** Item node */
+interface Item<K, V> extends LinkedNode<K, V> {
+	value: V | Promise<V>
+	key: K
+	/** Object weight */
+	weight: number
+	/** last access at interval (For performance instead of timestamp) */
+	at: number
+	/** If the item is permanent */
+	isPermanent: boolean
 }
 
-type NodeReadOnly<K, V> = Readonly<Node<K, V>>
+const DEFAULT_OPTIONS: Options<any, any> = {
+	max: Infinity,
+	ttl: Infinity,
+	ttlResolution: undefined,
+	onUpsert: undefined
+};
 
-/** Main interface */
-export default class LRU_TTL<K, V> implements NodeChain {
-    private _map: Map<K, Node<K, V>> = new Map<K, Node<K, V>>();
-    /** Max temp elements */
-    private _max: number
-    private _maxBytes: number // max bytes for temp entries
-    /** TLL */
-    private _ttl: number
-    private _ttlInterval: number
-    private _ttlP?: NodeJS.Timeout = undefined;
-    private _upsert?: ConstOptions<K, V>["upsert"]
+export default class LRU_TTL<K, V> implements LinkedNode<K, V>{
+	/** Head: Most Recently Used item (newest) */
+	_next: LinkedNode<K, V>;
+	/** Tail: Least Recently Used item (oldest) */
+	_prev: LinkedNode<K, V>;
+	/** Internal hash map */
+	#map: Map<K, Item<K, V>> = new Map();
+	/** Max weight */
+	#max!: number
+	/** TTL */
+	#ttl!: number
+	/** TTL resolution */
+	#ttlResolution!: number
+	/** On upsert callback */
+	#onUpsert?: Options<K, V>["onUpsert"]
+	/** Total items size */
+	#size = 0;
+	/** Temporary items size */
+	#tempSize = 0;
+	/** Permanent items size */
+	#permanentSize = 0;
+	/** Current interval time */
+	#currentTime = 0;
 
-    /** Temp elements count */
-    private _tmpSize: number = 0;
-    /** Total bytes inside the cache */
-    private _totalBytes: number = 0
-    /** Temp entries bytes */
-    private _tmpBytes: number = 0
-    /** Last used element */
-    _next: NodeChain = this
-    /** Least used element */
-    _prev: NodeChain = this
+	constructor(options: Options<K, V> = DEFAULT_OPTIONS) {
+		this.max = options.max ?? Infinity;
+		this.ttl = options.ttl ?? Infinity;
+		this.onUpsert = options.onUpsert;
+		this._next = this._prev = this;
+	}
 
-    constructor(options?: ConstOptions<K, V>) {
-        // Set config
-        if (options) {
-            // max entries
-            this._max = options.max == null ? Infinity : options.max;
-            // max bytes
-            var a: string | number | undefined = options.maxBytes;
-            this._maxBytes = a == null ? Infinity : typeof a === 'number' ? a : Bytes.parse(a);
-            // TTL
-            a = options.ttl;
-            this._ttl = a == null ? Infinity : typeof a === 'number' ? a : MS(a);
-            // TTL interval
-            a = options.ttlInterval;
-            this._ttlInterval = a == null ? 60000 : typeof a === 'number' ? a : MS(a);
-            this._upsert = options.upsert;
-        } else {
-            this._max = Infinity;
-            this._maxBytes = Infinity;
-            this._ttl = Infinity;
-            this._ttlInterval = 60000;
-        }
-        // fix ttl interval
-        if (this.ttlInterval > this.ttl)
-            this.ttlInterval = this.ttl;
-        // init chain
-        this._prev = this._next = this;
-    }
+	/** Get max items or max weight */
+	get max(): number { return this.#max }
+	/** Set max items or max weight */
+	set max(max: number | string) {
+		if (typeof max === 'number') {
+			if (max <= 0) throw new Error(`Cache: Illegal "max" value: ${max}`);
+		} else if (typeof max === 'string') {
+			max = Bytes.parse(max);
+		} else throw new Error(`Cache: "max" expected positive number or string`);
+		this.#max = max;
+	}
 
-    /** Set max */
-    get max() { return this._max }
-    set max(max: number) {
-        this._max = max
-    }
+	/** Get current ttl in milliseconds */
+	get ttl(): number { return this.#ttl }
+	/** Set ttl */
+	set ttl(ttl: number | string) {
+		if (typeof ttl === 'string') ttl = MS(ttl);
+		else if (typeof ttl === 'number' && ttl > 0) { }
+		else throw new Error(`Cache: "ttl" expected positive number or string`);
+		this.#ttl = ttl;
+		//TODO adjust time interval here
+	}
 
-    get maxBytes() { return this._maxBytes }
-    set maxBytes(maxBytes: number | string) {
-        this._maxBytes = typeof maxBytes === 'number' ? maxBytes : Bytes.parse(maxBytes);
-    }
+	/** Get ttl resolution */
+	get ttlResolution() { return this.#ttlResolution }
+	set ttlResolution(value: number | string) {
+		if (typeof value === 'string') value = MS(value);
+		else if (typeof value === 'number' && value > 0) { }
+		else throw new Error(`Cache: "ttlResolution" expected positive number or string`);
+		this.#ttlResolution = value;
+		if (this.#ttl != null)
+			this.ttl = this.#ttl; // Adjust interval timer
+	}
 
-    get ttl() { return this._ttl }
-    set ttl(ttl: number | string) {
-        this._ttl = typeof ttl === 'number' ? ttl : MS(ttl);
-    }
+	/** Get on upsert handler */
+	get onUpsert() { return this.#onUpsert; }
+	set onUpsert(handler: Options<K, V>["onUpsert"]) {
+		if (typeof handler === 'function')
+			this.#onUpsert = handler;
+		throw new Error('Cache: Expected function for "onUpsert"');
+	}
 
-    get ttlInterval() { return this._ttlInterval }
-    set ttlInterval(ttlInterval: number | string) {
-        this._ttlInterval = typeof ttlInterval === 'number' ? ttlInterval : MS(ttlInterval);
-        // fix ttl interval
-        if (this.ttlInterval > this.ttl)
-            this.ttlInterval = this.ttl;
-        // reload cleaner
-        if (this._ttlP) {
-            clearInterval(this._ttlP);
-            const interv = setInterval(this._ttlClean.bind(this), this._ttlInterval);
-            this._ttlP = interv;
-            interv.unref?.();
-        }
-    }
+	/** Get total items in the cache */
+	get length() { return this.#map.size; }
 
-    get upsertCb() { return this._upsert }
-    set upsertCb(cb: ConstOptions<K, V>["upsert"]) { this._upsert = cb; }
+	/** Get total weight */
+	get size() { return this.#size; }
+	/** Get temporary items weight */
+	get tempItemsSize() { return this.#tempSize; }
+	/** Get permanent items size */
+	get permanentItemsSize() { return this.#permanentSize; }
 
-    /** Get total bytes */
-    get bytes() { return this._totalBytes }
-    /** Temp entries bytes */
-    get tmpBytes() { return this._tmpBytes }
+	/** Check if a key is in the cache */
+	has(key: K) { return this.#map.has(key); }
 
-    /** Get cache size */
-    get size(): number { return this._map.size }
+	/** Add value to cache */
+	set(key: K, value: V | Promise<V>, weight: number = 1, isPermanent: boolean = false): this {
+		const item = this.#map.get(key);
+		if (item == null) {
+			this.#set(key, value, weight, isPermanent);
+		} else {
+			const weightDelta = weight - item.weight
+			this.#size += weightDelta;
+			//* Check if state changed (temp to permanent or vers versa)
+			if (isPermanent) {
+				if (item.isPermanent) {
+					// Keep permanent
+					this.#permanentSize += weightDelta;
+				} else {
+					// temporary to permanent
+					this.#permanentSize += weight;
+					this.#tempSize -= item.weight;
+					this.#detach(item); // remove from linked list
+				}
+			} else if (item.isPermanent) {
+				// changed from permanent to temporary
+				this.#tempSize += weight;
+				this.#permanentSize -= item.weight;
+				this.#attach(item);
+			} else {
+				// Keep temporary
+				this.#tempSize += weightDelta;
+			}
+			//* Set new values
+			item.value = value;
+			item.weight = weight;
+			item.at = this.#currentTime; // Used for TTL
+		}
+		return this;
+	}
+	/**
+	 * Add permanent element to the cache
+	 * Will persist until user removes it manually
+	 */
+	setPermanent(key: K, value: V | Promise<V>, weight: number = 1): this {
+		return this.set(key, value, weight, true);
+	}
 
-    /** Get temp elements count */
-    get tmpSize(): number { return this._tmpSize }
+	/** Get element from the cache */
+	get(key: K): V | Promise<V> | undefined {
+		const item = this.#map.get(key);
+		if (item != null) {
+			this.#refresh(item);
+			return item.value;
+		}
+	}
 
-    /** Check if cache has key */
-    has(key: K) { return this._map.has(key) }
+	/** Get element from the cache without changing it's timeout and LRU */
+	peek(key: K): V | Promise<V> | undefined {
+		return this.#map.get(key)?.value;
+	}
 
-    /** Set value */
-    set(key: K, value: V | Promise<V>, bytes: number = 0, isPermanent = false): this {
-        var item;
-        if (item = this._map.get(key)) {
-            if (item.value === value && item.bytes === bytes && item.isPermanent === isPermanent) {
-                item.lastAccess = Date.now();
-                return this
-            }
-            this._delete(item);
-        }
-        this._set(key, value, bytes, isPermanent);
-        return this;
-    }
+	/** Get and remove the least recently used element */
+	pop(): V | Promise<V> | undefined {
+		if (this._prev !== this) {
+			var oldest = this._prev as Item<K, V>;
+			this.#map.delete(oldest.key);// TODO change this to delete to adjust counters
+			this.#detach(oldest);
+			return oldest.value;
+		}
+		return undefined;
+	}
 
-    /** Add permanent element to the cache (will persist until user removes it manually) */
-    setPermanent(key: K, value: V, bytes: number = 0): this {
-        return this.set(key, value, bytes, true);
-    }
+	/** Get Least Recently Used item */
+	get lru(): V | Promise<V> | undefined {
+		return this._prev !== this ? (this._prev as Item<K, V>).value : undefined;
+	}
 
-    /** @private Insert new item */
-    private _set(key: K, value: V | Promise<V>, bytes: number, isPermanent: boolean): Node<K, V> {
-        var now = Date.now();
-        var ele: Node<K, V> = {
-            key, value, bytes,
-            createdAt: now,
-            lastAccess: now,
-            isPermanent: isPermanent,
-            _prev: undefined,
-            _next: undefined
-        }
-        // add to map
-        this._map.set(key, ele);
-        // Flags
-        this._totalBytes += bytes;
-        // add to chain
-        if (!isPermanent) {
-            var p = this._next;
-            p._prev = ele;
-            ele._next = p;
-            ele._prev = this;
-            this._next = ele;
-            // Flags
-            this._tmpSize++; // inc tmp counter
-            this._tmpBytes += bytes;
-            // remove last permanent element
-            if (this._tmpSize > this._max)
-                this._delete(this._prev as Node<K, V>) // Remove least used element
-            // remove until maxBytes
-            while (this._tmpBytes > this._maxBytes && this._prev != this) {
-                this._delete(this._prev as Node<K, V>);
-            }
-            // Run TTL
-            if (!this._ttlP && Number.isSafeInteger(this.ttl))
-                this._ttlP = setInterval(this._ttlClean.bind(this), this._ttlInterval)
-        }
-        return ele;
-    }
+	/** Get Most Recently Used item */
+	get mru(): V | Promise<V> | undefined {
+		return this._next !== this ? (this._next as Item<K, V>).value : undefined;
+	}
 
-    /** Get element from the cache */
-    get(key: K, upsert?: boolean, additionalUpsertCbArgs?: any[]): V | Promise<V> | undefined {
-        var ele: Node<K, V> | undefined;
-        var p: NodeChain;
-        var p2: NodeChain;
-        if (ele = this._map.get(key)) {
-            ele.lastAccess = Date.now();
-            if (!ele.isPermanent && ele._prev !== this) {
-                // Remove from chain
-                p = ele._next!;
-                p2 = ele._prev!;
-                p2!._next = p
-                p._prev = p2
-                // bring forward
-                p = this._next
-                p._prev = ele
-                ele._next = p;
-                ele._prev = this;
-                this._next = ele
-            }
-            return ele.value;
-        } else if (upsert) {
-            if (typeof this._upsert !== 'function')
-                throw new Error('Missing upsert callback!');
-            var upsertResult = this._upsert(key, additionalUpsertCbArgs);
-            if (upsertResult instanceof Promise) {
-                ele = this._set(key, upsertResult.then(({ value }) => value), 0, true);
-                return upsertResult.then((r: UpsertResult<V>) => {
-                    // Check object not modified
-                    if (ele === this._map.get(key)) {
-                        this._delete(ele!);
-                        this._set(key, r.value, r.bytes || 0, !!r.isPermanent);
-                    }
-                    return r.value;
-                });
-            }
-            else {
-                this._set(key, upsertResult.value, upsertResult.bytes || 0, !!upsertResult.isPermanent);
-                return upsertResult.value;
-            }
-        }
-        else return undefined;
-    }
-    /** Get element from the cache without changing it's timeout and LRU */
-    peek(key: K): V | Promise<V> | undefined {
-        return this._map.get(key)?.value;
-    }
+	/** Upsert value */
+	upsert(key: K, additionalArgs?: any) {
+		//TODO
+	}
 
-    /** Get and remove Least used element */
-    pop(): V | Promise<V> | undefined {
-        if (this._prev !== this) {
-            var oldest = this._prev as Node<K, V>;
-            this._delete(oldest);
-            return oldest.value;
-        }
-        return undefined;
-    }
+	/**
+	 * Delete element from the cache
+	 * @return {boolean} if the item exists before being removed
+	 */
+	delete(key: K): boolean {
+		const item = this.#map.get(key);
+		if (item != null) {
+			this.#map.delete(key);
+			this.#detach(item);
+			return true;
+		}
+		return false;
+	}
 
-    /** Get least recently used item */
-    getLRU() {
-        return this._prev !== this ? (this._prev as Node<K, V>).value : undefined
-    }
+	/** Get and delete */
+	getAndDelete(key: K): V | Promise<V> | undefined {
+		const item = this.#map.get(key);
+		if (item != null) {
+			this.#map.delete(key);
+			this.#detach(item);
+			return item.value;
+		}
+		return undefined;
+	}
 
-    /** Upsert element in the cache */
-    upsert(
-        /** Cache key */
-        key: K,
-        /** Additional args for upsert callback */
-        ...args: any[]
-    ): V | Promise<V> {
-        return this.get(key, true, args)!;
-    }
+	/** Remove all temporary items */
+	clearTemp() { }
+	/** Remove all permanent items */
+	clearPermanent() {
+		//TODO
+	}
+	/** Remove all items */
+	clearAll() { }
 
-    /** Delete element from the cache */
-    delete(key: K): this {
-        var el;
-        if (el = this._map.get(key))
-            this._delete(el);
-        return this;
-    }
+	/** Delete item from the cache */
+	#delete(item: Item<K, V>) {
+		this.#map.delete(item.key);
+		//TODO detach from linked list and remove weight
+	}
 
-    /** @private remove element from cache */
-    private _delete(ele: Node<K, V>) {
-        // remove from map
-        this._map.delete(ele.key);
-        // remove from chain
-        var bytes = ele.bytes;
-        if (!ele.isPermanent) {
-            var p = ele._next!;
-            var p2 = ele._prev!;
-            p._prev = p2;
-            p2._next = p;
-            // adjust cache bytes
-            this._tmpBytes -= bytes;
-            this._tmpSize--;
-        }
-        // Adjust total bytes
-        this._totalBytes -= bytes;
-    }
+	/** Add element to the cache */
+	#set(key: K, value: V | Promise<V>, weight: number, isPermanent: boolean) {
 
-    /** Clear all the cache excluding permanent items */
-    clearTemp() {
-        var el = this._prev as NodeChain;
-        var map = this._map;
-        // @ts-ignore
-        while (el !== this) {
-            map.delete((el as Node<K, V>).key);
-            el = el._next!;
-        }
-        this._next = this._prev = this;
-        this._totalBytes -= this._tmpBytes;
-        this._tmpBytes = 0;
-        this._tmpSize = 0;
-    }
+	}
 
-    /** Clear all items in the cache including permanent items */
-    clearAll() {
-        this._next = this._prev = this;
-        this._map.clear();
-        this._tmpBytes = this._tmpSize = this._totalBytes = 0;
-    }
+	/** Detach item from linked list */
+	#detach(item: Item<K, V>) { }
+	/** Attach item to en head of the linked list */
+	#attach(item: Item<K, V>) { }
 
-    /** Get entries */
-    *entries(): IterableIterator<[K, V | Promise<V>]> {
-        var it = this._map.entries();
-        var p = it.next();
-        var v;
-        while (!p.done) {
-            v = p.value;
-            yield [v[0], v[1].value];
-            p = it.next();
-        }
-    }
-
-    /** Get all keys */
-    keys(): IterableIterator<K> { return this._map.keys() }
-
-    /** Values */
-    *values(): IterableIterator<V | Promise<V>> {
-        var it = this._map.values();
-        var p = it.next()
-        while (!p.done) {
-            yield p.value.value;
-        }
-    }
-
-    /** ForEach */
-    forEach(cb: (value: V | Promise<V>, key: K, cache: this) => void, thisArg: any) {
-        var it = this._map.values();
-        var p = it.next()
-        if (arguments.length === 1) thisArg = this;
-        while (!p.done) {
-            var e = p.value;
-            cb.call(thisArg, e.value, e.key, this);
-        }
-    }
-
-    /** TTL CLean */
-    _ttlClean() {
-        // Find last node to keep
-        var expires = Date.now() - this._ttl;
-        var p = this._prev as Node<K, V>;
-        var bytes = 0;
-        var map = this._map;
-        while ((p as NodeChain) !== this && p.lastAccess < expires) {
-            bytes += p.bytes;
-            map.delete(p.key);
-            p = p._prev as Node<K, V>;
-        }
-        // Remove other nodes
-        if ((p as NodeChain) === this) {
-            // Remove all nodes
-            this._prev = this._next = this
-            this._totalBytes -= bytes;
-            if (this._totalBytes < 0) this._totalBytes = 0
-            this._tmpBytes = this._tmpSize = 0;
-            // Break ttl
-            clearInterval(this._ttlP!);
-            this._ttlP = undefined;
-        } else {
-            this._prev = p;
-            p._next = this;
-        }
-    }
-
-    /** For(of) */
-    *[Symbol.iterator]() {
-        var it = this._map.values();
-        var v = it.next();
-        while (!v.done) {
-            var entry = v.value
-            yield [entry.key, entry.value];
-        }
-    }
-
-    /** Get element metadata */
-    getMetadata(key: K): NodeReadOnly<K, V> | undefined {
-        const el = this._map.get(key);
-        return el == null ? el : { ...el };
-    }
+	/** Refresh item */
+	#refresh(item: Item<K, V>) {
+		//TODO
+	}
 }

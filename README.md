@@ -86,12 +86,12 @@ const cache= new LRU_TTL({
 	 * Create value if not exists, @see ::upsert method
 	 * Could be synchronous or Asynchronous or returns promise
 	 */
-	upsert: function(key){ /* Logic */}
+	onUpsert: function(key){ /* Logic */}
 	/** 
-	 * You can add additional arguments to upsert.
+	 * You can add additional arguments to onUpsert.
 	 * See "upsert" section for details
 	 */
-	upsert: function(key, userAdditionalArgs?: any[]){ /* Logic */}
+	onUpsert: function(key, userAdditionalArgs?: any[]){ /* Logic */}
 });
 ```
 
@@ -115,7 +115,7 @@ cache.ttl
 cache.ttlInverval
 
 /** Get/Change upsert callback */
-cache.upsertCb
+cache.onUpsert
 
 /** Get used bytes */
 cache.bytes
@@ -204,8 +204,8 @@ const cache= new LRU_TTL({
 	}
 });
 
-// Or set it using ::upsertCb
-cache.upsertCb= function(key){ /* Your Logic */};
+// Or set it using ::onUpsert
+cache.onUpsert= function(key){ /* Your Logic */};
 
 /** Using ::upsert */
 var item= cache.upsert(mixedKey);
@@ -218,8 +218,8 @@ const cache= new LRU_TTL({
 	upsert: async function(key){ /* Return Logic */ }
 });
 
-// Or set it using ::upsertCb
-cache.upsertCb= async function(key){ /* Logic */};
+// Or set it using ::onUpsert
+cache.onUpsert= async function(key){ /* Logic */};
 
 /** Using ::upsert */
 const item= await cache.upsert(mixedKey);
@@ -238,10 +238,10 @@ const cache= new LRU_TTL({
 	}
 });
 
-// Or set it using ::upsertCb
-cache.upsertCb= function(key, userAdditionalArgs?: any[]){ /* Your Logic */};
+// Or set it using ::onUpsert
+cache.onUpsert= function(key, userAdditionalArgs?: any[]){ /* Your Logic */};
 
-/** Arguments added after "mixedKey" will be grouped in an array and set as the second argument of "upsertCb" */
+/** Arguments added after "mixedKey" will be grouped in an array and set as the second argument of "onUpsert" */
 const item= cache.upsert(mixedKey, additionalArg1, additionalArg2, ...);
 ```
 
