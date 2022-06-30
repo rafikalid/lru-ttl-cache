@@ -39,7 +39,7 @@ export interface UpsertResult<V> {
 	/**
 	 * Target value
 	 */
-	value: V,
+	value: V | Promise<V>,
 	/**
 	 * The weight of the item,
 	 * @default 1
@@ -55,20 +55,26 @@ export interface UpsertResult<V> {
 
 /** Linked Node */
 interface LinkedNode<K, V> {
-	_next: LinkedNode<K, V> | undefined
-	_prev: LinkedNode<K, V> | undefined
+	_next: LinkedNode<K, V>
+	_prev: LinkedNode<K, V>
 }
 
-/** Item node */
-interface Item<K, V> extends LinkedNode<K, V> {
+/** Item key,value */
+interface ItemNode<K, V> {
+	/** Target value */
 	value: V | Promise<V>
+	/** Target key */
 	key: K
 	/** Object weight */
 	weight: number
-	/** last access at interval (For performance instead of timestamp) */
-	at: number
 	/** If the item is permanent */
 	isPermanent: boolean
+}
+
+/** Item node */
+interface Item<K, V> extends LinkedNode<K, V>, ItemNode<K, V> {
+	/** last access at interval (For performance instead of timestamp) */
+	at: number
 }
 
 const DEFAULT_OPTIONS: Options<any, any> = {
@@ -87,20 +93,24 @@ export default class LRU_TTL<K, V> implements LinkedNode<K, V>{
 	#map: Map<K, Item<K, V>> = new Map();
 	/** Max weight */
 	#max!: number
+	/** On upsert callback */
+	#onUpsert?: Options<K, V>["onUpsert"]
+	/** Total items weight */
+	#weight = 0;
+	/** Temporary items weight */
+	#tempWeight = 0;
+	/** Permanent items weight */
+	#permanentWeight = 0;
 	/** TTL */
 	#ttl!: number
 	/** TTL resolution */
 	#ttlResolution!: number
-	/** On upsert callback */
-	#onUpsert?: Options<K, V>["onUpsert"]
-	/** Total items size */
-	#size = 0;
-	/** Temporary items size */
-	#tempSize = 0;
-	/** Permanent items size */
-	#permanentSize = 0;
 	/** Current interval time */
-	#currentTime = 0;
+	#now = 0;
+	/** Remove any item that its time is less than this value */
+	#ttlExpires = -1;
+	/** Timer reference */
+	#timerRef?: NodeJS.Timeout = undefined;
 
 	constructor(options: Options<K, V> = DEFAULT_OPTIONS) {
 		this.max = options.max ?? Infinity;
@@ -125,19 +135,33 @@ export default class LRU_TTL<K, V> implements LinkedNode<K, V>{
 	get ttl(): number { return this.#ttl }
 	/** Set ttl */
 	set ttl(ttl: number | string) {
+		// Check/convert ttl
 		if (typeof ttl === 'string') ttl = MS(ttl);
-		else if (typeof ttl === 'number' && ttl > 0) { }
-		else throw new Error(`Cache: "ttl" expected positive number or string`);
+		if (Number.isSafeInteger(ttl) && ttl > 0 || ttl === Infinity) { }
+		else throw new Error(`Cache: "ttl" expected string or positive integer`);
 		this.#ttl = ttl;
-		//TODO adjust time interval here
+		// Adjust interval
+		if (this.#timerRef != null) clearInterval(this.#timerRef);
+		if (Number.isFinite(ttl)) {
+			// TTL resolution
+			let ttlResolution = this.#ttlResolution;
+			if (ttlResolution == null || ttlResolution > ttl) {
+				ttlResolution = this.#ttlResolution = Math.ceil(ttl / 10);
+			}
+			// Adjust ttl expires
+			this.#ttlExpires = this.#now - Math.floor(ttl / ttlResolution);
+			// Run timer
+			this.#timerRef = setInterval(this.#ttlCleaner.bind(this), ttlResolution);
+			this.#timerRef.unref?.(); // Useful for Node to prevent timer from blocking app when exit
+		}
 	}
 
 	/** Get ttl resolution */
 	get ttlResolution() { return this.#ttlResolution }
 	set ttlResolution(value: number | string) {
 		if (typeof value === 'string') value = MS(value);
-		else if (typeof value === 'number' && value > 0) { }
-		else throw new Error(`Cache: "ttlResolution" expected positive number or string`);
+		if (Number.isSafeInteger(value) && value > 0) { }
+		else throw new Error(`Cache: "ttlResolution" expected positive integer or string`);
 		this.#ttlResolution = value;
 		if (this.#ttl != null)
 			this.ttl = this.#ttl; // Adjust interval timer
@@ -153,13 +177,15 @@ export default class LRU_TTL<K, V> implements LinkedNode<K, V>{
 
 	/** Get total items in the cache */
 	get length() { return this.#map.size; }
+	/** Get total items in the cache */
+	get size() { return this.#map.size; }
 
 	/** Get total weight */
-	get size() { return this.#size; }
+	get weight() { return this.#weight; }
 	/** Get temporary items weight */
-	get tempItemsSize() { return this.#tempSize; }
+	get tempWeight() { return this.#tempWeight; }
 	/** Get permanent items size */
-	get permanentItemsSize() { return this.#permanentSize; }
+	get permanentWeight() { return this.#permanentWeight; }
 
 	/** Check if a key is in the cache */
 	has(key: K) { return this.#map.has(key); }
@@ -171,31 +197,33 @@ export default class LRU_TTL<K, V> implements LinkedNode<K, V>{
 			this.#set(key, value, weight, isPermanent);
 		} else {
 			const weightDelta = weight - item.weight
-			this.#size += weightDelta;
+			this.#weight += weightDelta;
 			//* Check if state changed (temp to permanent or vers versa)
 			if (isPermanent) {
 				if (item.isPermanent) {
 					// Keep permanent
-					this.#permanentSize += weightDelta;
+					this.#permanentWeight += weightDelta;
 				} else {
 					// temporary to permanent
-					this.#permanentSize += weight;
-					this.#tempSize -= item.weight;
-					this.#detach(item); // remove from linked list
+					this.#permanentWeight += weight;
+					this.#tempWeight -= item.weight;
+					// Detach from linked list
+					this.#detach(item);
 				}
 			} else if (item.isPermanent) {
 				// changed from permanent to temporary
-				this.#tempSize += weight;
-				this.#permanentSize -= item.weight;
+				this.#tempWeight += weight;
+				this.#permanentWeight -= item.weight;
+				// Append to the linked list
 				this.#attach(item);
 			} else {
 				// Keep temporary
-				this.#tempSize += weightDelta;
+				this.#tempWeight += weightDelta;
 			}
 			//* Set new values
 			item.value = value;
 			item.weight = weight;
-			item.at = this.#currentTime; // Used for TTL
+			item.at = this.#now; // Used for TTL
 		}
 		return this;
 	}
@@ -210,8 +238,16 @@ export default class LRU_TTL<K, V> implements LinkedNode<K, V>{
 	/** Get element from the cache */
 	get(key: K): V | Promise<V> | undefined {
 		const item = this.#map.get(key);
-		if (item != null) {
-			this.#refresh(item);
+		const itemExists = item != null;
+		if (itemExists) {
+			// Update ttl
+			item.at = this.#now;
+			// Bring forward in the linked list
+			const doRefreshLinkedItem = !item.isPermanent && item._prev !== this;
+			if (doRefreshLinkedItem) {
+				this.#detach(item);
+				this.#attach(item);
+			}
 			return item.value;
 		}
 	}
@@ -221,30 +257,65 @@ export default class LRU_TTL<K, V> implements LinkedNode<K, V>{
 		return this.#map.get(key)?.value;
 	}
 
-	/** Get and remove the least recently used element */
-	pop(): V | Promise<V> | undefined {
+	/** Get meta data without affecting LRU and TTL */
+	getMetadata(key: K): ItemNode<K, V> | undefined {
+		return this.#map.get(key);
+	}
+
+	/** Get and remove the Least Recently Used element */
+	popLRU(): ItemNode<K, V> | undefined {
 		if (this._prev !== this) {
-			var oldest = this._prev as Item<K, V>;
-			this.#map.delete(oldest.key);// TODO change this to delete to adjust counters
-			this.#detach(oldest);
-			return oldest.value;
+			const item = this._prev as Item<K, V>;
+			this.#delete(item);
+			return item;
+		}
+		return undefined;
+	}
+
+	/** Get and remove the Most Recently Used element */
+	popMRU(): ItemNode<K, V> | undefined {
+		if (this._prev !== this) {
+			const item = this._prev as Item<K, V>;
+			this.#delete(item);
+			return item;
 		}
 		return undefined;
 	}
 
 	/** Get Least Recently Used item */
-	get lru(): V | Promise<V> | undefined {
-		return this._prev !== this ? (this._prev as Item<K, V>).value : undefined;
+	get lru(): ItemNode<K, V> | undefined {
+		return this._prev !== this ? (this._prev as Item<K, V>) : undefined;
 	}
 
 	/** Get Most Recently Used item */
-	get mru(): V | Promise<V> | undefined {
-		return this._next !== this ? (this._next as Item<K, V>).value : undefined;
+	get mru(): ItemNode<K, V> | undefined {
+		return this._next !== this ? (this._next as Item<K, V>) : undefined;
 	}
 
 	/** Upsert value */
-	upsert(key: K, additionalArgs?: any) {
-		//TODO
+	upsert(key: K, additionalArgs?: any): V | Promise<V> {
+		let value = this.get(key);
+		if (value != null) {
+			return value;
+		} else if (typeof this.#onUpsert !== 'function') {
+			throw new Error('Cache: Missing "onUpsert" handler');
+		} else {
+			const res = this.#onUpsert(key, additionalArgs);
+			if (res instanceof Promise) {
+				const pendingValue = res.then((v) => {
+					const valueNotChangedOrRemoved = pendingValue === this.#map.get(key)?.value;
+					if (valueNotChangedOrRemoved) {
+						this.set(key, v.value, v.weight ?? 1, v.isPermanent ?? false);
+					}
+					return v.value;
+				});
+				this.#set(key, pendingValue, 1, true); // Store the promise as a value until resolved
+				return pendingValue;
+			} else {
+				this.#set(key, res.value, res.weight ?? 1, !!res.isPermanent);
+				return res.value;
+			}
+		}
 	}
 
 	/**
@@ -254,8 +325,7 @@ export default class LRU_TTL<K, V> implements LinkedNode<K, V>{
 	delete(key: K): boolean {
 		const item = this.#map.get(key);
 		if (item != null) {
-			this.#map.delete(key);
-			this.#detach(item);
+			this.#delete(item);
 			return true;
 		}
 		return false;
@@ -265,40 +335,263 @@ export default class LRU_TTL<K, V> implements LinkedNode<K, V>{
 	getAndDelete(key: K): V | Promise<V> | undefined {
 		const item = this.#map.get(key);
 		if (item != null) {
-			this.#map.delete(key);
-			this.#detach(item);
+			this.#delete(item);
 			return item.value;
 		}
 		return undefined;
 	}
 
 	/** Remove all temporary items */
-	clearTemp() { }
+	clearTemp(): this {
+		if (this.#permanentWeight === 0)
+			this.clearAll();
+		else {
+			let item = this._prev;
+			const map = this.#map;
+			while (item !== this) {
+				map.delete((item as Item<K, V>).key);
+				item = item._next;
+			}
+			this._prev = this._next = this; // Empty linked list
+			this.#weight = this.#permanentWeight;
+			this.#tempWeight = 0;
+		}
+		return this;
+	}
 	/** Remove all permanent items */
-	clearPermanent() {
-		//TODO
+	clearPermanent(): this {
+		if (this.#tempWeight === 0) this.clearAll();
+		else {
+			this.#map.forEach(function (item, key, map) {
+				if (item.isPermanent)
+					map.delete(key);
+			});
+			this.#weight = this.#permanentWeight;
+			this.#tempWeight = 0;
+		}
+		return this;
 	}
 	/** Remove all items */
-	clearAll() { }
+	clearAll(): this {
+		this.#map.clear();
+		this._prev = this._next = this;
+		this.#weight = this.#permanentWeight = this.#tempWeight = 0;
+		return this;
+	}
+
+	/** Clone cache and all it's entires */
+	clone(): LRU_TTL<K, V> {
+		const cloneCache = new LRU_TTL({
+			max: this.#max,
+			onUpsert: this.#onUpsert,
+			ttl: this.#ttl,
+			ttlResolution: this.#ttlResolution
+		});
+		// Clone Temp items
+		if (this.#tempWeight > 0) {
+			let prevClone = cloneCache as unknown as Item<K, V>;
+			let item = this._next as Item<K, V>;
+			const cloneMap = cloneCache.#map;
+			while ((item as unknown) !== this) {
+				const cloneItem: Item<K, V> = {
+					_prev: prevClone,
+					_next: cloneCache, // Placeholder
+					at: item.at,
+					isPermanent: item.isPermanent,
+					key: item.key,
+					value: item.value,
+					weight: item.weight
+				}
+				prevClone._next = cloneItem;
+				cloneMap.set(item.key, cloneItem);
+				prevClone = cloneItem;
+			}
+			prevClone._next = cloneCache;
+			cloneCache._prev = prevClone;
+		}
+		// Add permanent items
+		if (this.#permanentWeight > 0) {
+			const cloneMap = cloneCache.#map;
+			this.#map.forEach(function (value, key) {
+				cloneMap.set(key, value);
+			});
+		}
+		// Weight
+		cloneCache.#weight = this.#weight;
+		cloneCache.#permanentWeight = this.#permanentWeight;
+		cloneCache.#tempWeight = this.#tempWeight;
+		return cloneCache;
+	}
+
+	/** Create cache from Map or IterableIterator<[K, V]> */
+	static from<K, V>(data: LRU_TTL<K, V> | Map<K, V> | IterableIterator<[K, V]>): LRU_TTL<K, V> {
+		const cache = data instanceof LRU_TTL ? new LRU_TTL({
+			max: data.#max,
+			onUpsert: data.#onUpsert,
+			ttl: data.#ttl,
+			ttlResolution: data.#ttlResolution
+		}) : new LRU_TTL<K, V>();
+		cache.addAll(data);
+		return cache;
+	}
+	/** Append all items from Map, Cache or Iterator<K, V> */
+	addAll(data: LRU_TTL<K, V> | Map<K, V> | IterableIterator<[K, V]>) {
+		if (data instanceof LRU_TTL) {
+			const it = data.entries();
+			let p = it.next();
+			while (!p.done) {
+				let [key, value] = p.value;
+				this.set(key, value.value, value.weight, value.isPermanent);
+				p = it.next();
+			}
+		} else {
+			if (data instanceof Map) data = data.entries();
+			const it = data;
+			let p = it.next();
+			while (!p.done) {
+				let [key, value] = p.value;
+				this.set(key, value, 1, false);
+				p = it.next();
+			}
+		}
+	}
+
+	/** Get entries */
+	entries(): IterableIterator<[K, ItemNode<K, V>]> {
+		return this.#map.entries();
+	}
+
+	/** Get all keys */
+	keys(): IterableIterator<K> { return this.#map.keys() }
+
+	/** Values */
+	*values(): IterableIterator<V | Promise<V>> {
+		var it = this.#map.values();
+		var p = it.next()
+		while (!p.done) {
+			yield p.value.value;
+		}
+	}
+
+	/** ForEach */
+	forEach(cb: (value: V | Promise<V>, key: K, cache: this, metadata: ItemNode<K, V>) => void, thisArg: any) {
+		var it = this.#map.values();
+		var p = it.next();
+		if (arguments.length === 1) thisArg = this;
+		while (!p.done) {
+			var e = p.value;
+			cb.call(thisArg, e.value, e.key, this, e);
+		}
+	}
+
+	/** For(of) */
+	*[Symbol.iterator]() {
+		var it = this.#map.values();
+		var v = it.next();
+		while (!v.done) {
+			var entry = v.value
+			yield [entry.key, entry.value];
+		}
+	}
+
+	/**
+	 * Add missing element to the cache
+	 * !make sure "key" is missing on the cache before calling this method
+	 */
+	#set(key: K, value: V | Promise<V>, weight: number, isPermanent: boolean) {
+		// Create and add to Map
+		const previousHead = this._next;
+		const item: Item<K, V> = {
+			key, value, weight, isPermanent,
+			at: this.#now,
+			_next: previousHead,
+			_prev: this
+		};
+		this.#map.set(key, item);
+		this.#weight += weight;
+		// check if add to linked list and adjust weight
+		if (isPermanent) {
+			// Adjust weight
+			this.#permanentWeight += weight;
+		} else {
+			// Append to linked list
+			previousHead._prev = item;
+			this._next = item;
+			// Weight
+			this.#tempWeight += weight;
+			// Apply LRU on temp items
+			let cacheMaxExceeded = this.#tempWeight > this.#max;
+			if (cacheMaxExceeded) {
+				const maxWeight = this.#max;
+				let tempWeight = this.#tempWeight;
+				const map = this.#map;
+				let oldItem = this._prev as Item<K, V>;
+				let totalWeight = this.#weight;
+				do {
+					map.delete(oldItem.key);
+					const weight = oldItem.weight;
+					tempWeight -= weight;
+					totalWeight -= weight;
+					oldItem = oldItem._prev as Item<K, V>;
+					cacheMaxExceeded = (oldItem as unknown) !== this && tempWeight > maxWeight;
+				} while (cacheMaxExceeded);
+				// Detach all removed items
+				this._prev = oldItem;
+				oldItem._next = this;
+				// Adjust weight
+				this.#tempWeight = tempWeight;
+				this.#weight = totalWeight;
+			}
+		}
+	}
+
+	/** Detach item from linked list */
+	#detach(item: Item<K, V>) {
+		const previousItem = item._prev;
+		const nextItem = item._next;
+		previousItem._next = nextItem;
+		nextItem._prev = previousItem;
+	}
+	/** Append item the linked list */
+	#attach(item: Item<K, V>) {
+		const previousHead = this._next;
+		this._next = item;
+		item._prev = this;
+		item._next = previousHead;
+		previousHead._prev = item;
+	}
+
+	/** Timer interval handler: used to clean ttl */
+	#ttlCleaner() {
+		if (this._prev === this) return; // No temp item found
+		// Remove expired items
+		++this.#now;
+		const expires = ++this.#ttlExpires;
+		const map = this.#map;
+		let item = this._prev as Item<K, V>;
+
+		let weight = 0;
+		while ((item as unknown) !== this && item.at < expires) {
+			weight += item.weight;
+			map.delete(item.key);
+			item = item._prev as Item<K, V>;
+		}
+		// Check if clear everything
+		if ((item as unknown) === this) this.clearAll();
+		else {
+			this._prev = item;
+			item._next = this;
+		}
+	}
 
 	/** Delete item from the cache */
 	#delete(item: Item<K, V>) {
 		this.#map.delete(item.key);
-		//TODO detach from linked list and remove weight
-	}
-
-	/** Add element to the cache */
-	#set(key: K, value: V | Promise<V>, weight: number, isPermanent: boolean) {
-
-	}
-
-	/** Detach item from linked list */
-	#detach(item: Item<K, V>) { }
-	/** Attach item to en head of the linked list */
-	#attach(item: Item<K, V>) { }
-
-	/** Refresh item */
-	#refresh(item: Item<K, V>) {
-		//TODO
+		this.#detach(item);
+		//Weight
+		const weight = item.weight;
+		this.#weight -= weight;
+		if (item.isPermanent) this.#permanentWeight -= weight;
+		else this.#tempWeight -= weight;
 	}
 }
