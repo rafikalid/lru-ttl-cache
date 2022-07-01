@@ -1,4 +1,4 @@
-import MS from 'ms';
+import MS from 'timestring';
 import Bytes from 'bytes';
 
 /** Cache Options */
@@ -95,6 +95,10 @@ export default class LRU_TTL<K, V> implements LinkedNode<K, V>{
 	#max!: number
 	/** On upsert callback */
 	#onUpsert?: Options<K, V>["onUpsert"]
+	/** Temporary entires count */
+	#tempLength = 0;
+	/** Permanent entries count */
+	#permanentLength = 0;
 	/** Total items weight */
 	#weight = 0;
 	/** Temporary items weight */
@@ -136,7 +140,7 @@ export default class LRU_TTL<K, V> implements LinkedNode<K, V>{
 	/** Set ttl */
 	set ttl(ttl: number | string) {
 		// Check/convert ttl
-		if (typeof ttl === 'string') ttl = MS(ttl);
+		if (typeof ttl === 'string') ttl = MS(ttl, 'ms');
 		if (Number.isSafeInteger(ttl) && ttl > 0 || ttl === Infinity) { }
 		else throw new Error(`Cache: "ttl" expected string or positive integer`);
 		this.#ttl = ttl;
@@ -159,7 +163,7 @@ export default class LRU_TTL<K, V> implements LinkedNode<K, V>{
 	/** Get ttl resolution */
 	get ttlResolution() { return this.#ttlResolution }
 	set ttlResolution(value: number | string) {
-		if (typeof value === 'string') value = MS(value);
+		if (typeof value === 'string') value = MS(value, 'ms');
 		if (Number.isSafeInteger(value) && value > 0) { }
 		else throw new Error(`Cache: "ttlResolution" expected positive integer or string`);
 		this.#ttlResolution = value;
@@ -208,6 +212,8 @@ export default class LRU_TTL<K, V> implements LinkedNode<K, V>{
 					// temporary to permanent
 					this.#permanentWeight += weight;
 					this.#tempWeight -= item.weight;
+					--this.#tempLength;
+					++this.#permanentLength;
 					// Detach from linked list
 					this.#detach(item);
 				}
@@ -215,6 +221,8 @@ export default class LRU_TTL<K, V> implements LinkedNode<K, V>{
 				// changed from permanent to temporary
 				this.#tempWeight += weight;
 				this.#permanentWeight -= item.weight;
+				++this.#tempLength;
+				--this.#permanentLength;
 				// Append to the linked list
 				this.#attach(item);
 			} else {
@@ -356,6 +364,7 @@ export default class LRU_TTL<K, V> implements LinkedNode<K, V>{
 			this._prev = this._next = this; // Empty linked list
 			this.#weight = this.#permanentWeight;
 			this.#tempWeight = 0;
+			this.#tempLength = 0;
 		}
 		return this;
 	}
@@ -368,7 +377,8 @@ export default class LRU_TTL<K, V> implements LinkedNode<K, V>{
 					map.delete(key);
 			});
 			this.#weight = this.#permanentWeight;
-			this.#tempWeight = 0;
+			this.#permanentWeight = 0;
+			this.#permanentLength = 0;
 		}
 		return this;
 	}
@@ -377,6 +387,7 @@ export default class LRU_TTL<K, V> implements LinkedNode<K, V>{
 		this.#map.clear();
 		this._prev = this._next = this;
 		this.#weight = this.#permanentWeight = this.#tempWeight = 0;
+		this.#permanentLength = this.#tempLength = 0;
 		return this;
 	}
 
@@ -421,6 +432,8 @@ export default class LRU_TTL<K, V> implements LinkedNode<K, V>{
 		cloneCache.#weight = this.#weight;
 		cloneCache.#permanentWeight = this.#permanentWeight;
 		cloneCache.#tempWeight = this.#tempWeight;
+		cloneCache.#tempLength = this.#tempLength;
+		cloneCache.#permanentLength = this.#permanentLength;
 		return cloneCache;
 	}
 
@@ -514,12 +527,14 @@ export default class LRU_TTL<K, V> implements LinkedNode<K, V>{
 		if (isPermanent) {
 			// Adjust weight
 			this.#permanentWeight += weight;
+			++this.#permanentLength;
 		} else {
 			// Append to linked list
 			previousHead._prev = item;
 			this._next = item;
 			// Weight
 			this.#tempWeight += weight;
+			++this.#tempLength;
 			// Apply LRU on temp items
 			let cacheMaxExceeded = this.#tempWeight > this.#max;
 			if (cacheMaxExceeded) {
@@ -528,11 +543,13 @@ export default class LRU_TTL<K, V> implements LinkedNode<K, V>{
 				const map = this.#map;
 				let oldItem = this._prev as Item<K, V>;
 				let totalWeight = this.#weight;
+				let tempLength = this.#tempLength;
 				do {
 					map.delete(oldItem.key);
 					const weight = oldItem.weight;
 					tempWeight -= weight;
 					totalWeight -= weight;
+					--tempLength;
 					oldItem = oldItem._prev as Item<K, V>;
 					cacheMaxExceeded = (oldItem as unknown) !== this && tempWeight > maxWeight;
 				} while (cacheMaxExceeded);
@@ -542,6 +559,7 @@ export default class LRU_TTL<K, V> implements LinkedNode<K, V>{
 				// Adjust weight
 				this.#tempWeight = tempWeight;
 				this.#weight = totalWeight;
+				this.#tempLength = tempLength;
 			}
 		}
 	}
@@ -592,7 +610,13 @@ export default class LRU_TTL<K, V> implements LinkedNode<K, V>{
 		//Weight
 		const weight = item.weight;
 		this.#weight -= weight;
-		if (item.isPermanent) this.#permanentWeight -= weight;
-		else this.#tempWeight -= weight;
+		if (item.isPermanent) {
+			this.#permanentWeight -= weight;
+			--this.#permanentLength;
+		}
+		else {
+			this.#tempWeight -= weight;
+			--this.#tempLength;
+		}
 	}
 }
