@@ -170,9 +170,10 @@ export default class LRU_TTL<K, V> implements LinkedNode<K, V>{
 	/** Get on upsert handler */
 	get onUpsert() { return this.#onUpsert; }
 	set onUpsert(handler: Options<K, V>["onUpsert"]) {
-		if (typeof handler === 'function')
+		if (typeof handler === 'function' || handler == null)
 			this.#onUpsert = handler;
-		throw new Error('Cache: Expected function for "onUpsert"');
+		else
+			throw new Error('Cache: Expected function for "onUpsert"');
 	}
 
 	/** Get total items in the cache */

@@ -1,17 +1,17 @@
 # lru-ttl-cache
-Super fast Optimized in memory LRU and TTL cache.
-Works with all javascript environments including Node.js and browsers.
-- LRU cache: Removes Least Recently Used items
+The fastest and more Optimized in memory LRU, MRU and TTL cache for Node.js, Browser and JS-based environnement.
+The only cache that supports permanent items.
+- LRU cache: Removes Least Recently Used items when maximum entries exceeded
 - TTL cache: Removes expired item (Time To Live cache)
-- Permanent items: Items marked as permanent are not removed from the cache until you do it yourself
+- Permanent items: Items marked as permanent are not removed from the cache until you do it yourself.
 
 You can combine all cache behaviors or use the one you need.
 
 # Why to use:
-- Fast in memory cache
-- Use both TTL (Time To Live) and LRU (Least Recently Used)
+- The Fastest in memory cache (Last check on July 1st 2022)
+- One cache for both TTL (Time To Live) and LRU (Least Recently Used)
 - Can store permanent items (Could be removed explicitly by calling ::delete)
-- Could set an optional memory-size for each element and set a maximum size (bytes) for the whole cache
+- Could set an optional memory-size or weight for each element and set a maximum size (bytes) for the whole cache
 - Supports element upsert (Create an item if it does not exist)
 - Don't use a "setTimeout" for each item which increases performance
 - Uses a "HashMap" instead of a plain JavaScript object. This increases performance regardless of insertions and deletions.
@@ -21,11 +21,23 @@ You can combine all cache behaviors or use the one you need.
 - 100% JavaScript implementation
 
 # Compared to others?
-- The maximum number of cache entries is 134 million. Others only support less than a million
-- The only cache that supports any type as a key. Others only supports strings.
-- The only cache that supports creating missing items in both synchronized and asynchronous modes.
+- The maximum number of cache entries is 134 million. Most of others only support less than a million
+- Supports any type as a key. Most of others only supports strings.
+- Supports creating missing items in both synchronized and asynchronous modes.
 - The fastest javascript cache (@see benchmarking)
 - The lowest memory usage (@see benchmarking)
+
+# Benchmarking
+| lru-ttl-cache | 1,262 ops/sec ±0.19% | The fastest |
+|---|---|---|
+| lru-cache | 1,123 ops/sec ±0.34% | 2% slow |
+| quick-lru | 1,088 ops/sec ±0.17% | 2% slow |
+| lru | 474 ops/sec ±0.33% | 2% slow |
+
+## Compared with other LRU caches
+| 
+
+## Compared with other TTL caches
 
 ## Installation
 ```shell

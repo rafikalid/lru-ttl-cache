@@ -8,7 +8,8 @@
     "import": "./dist/module/index.mjs"
   },
   "scripts": {
-    "test": "yarn gulp --prod && yarn mocha"
+    "test": "yarn gulp --prod && yarn mocha",
+    "benchmark": "node --expose-gc benchmark/lru-bench.mjs && node --expose-gc benchmark/ttl-bench.mjs"
   },
   "repository": {
     "type": "git",

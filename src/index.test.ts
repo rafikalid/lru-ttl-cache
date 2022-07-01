@@ -69,7 +69,7 @@ describe('Cache Test', function () {
 			setTimeout(function () {
 				console.log('---k5>>', cache.get('k5'));
 				console.log('--size: ', cache.size)
-				cb(cache.tmpSize > 0 ? new Error('Expected one element') : null)
+				cb(cache.tempWeight > 0 ? new Error('Expected one element') : null)
 
 			}, 4000)
 		});
