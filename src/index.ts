@@ -31,15 +31,21 @@ export interface Options<K, V> {
 	 * @param {mixed} key - Any javascript type as a key
 	 * @param {mixed} additional arguments. could be list of arguments. It's the second argument of "cache.upsert(key, additionalArgs)"
 	 */
-	onUpsert?: (key: K, additionalArgs?: any[]) => UpsertResult<V> | Promise<UpsertResult<V>>
+	onUpsert?: (key: K, additionalArgs?: any[]) => UpsertResult<V> | undefined | Promise<UpsertResult<V> | undefined>
 }
+/**
+ * mapped value
+ * Could be the value
+ * or when "upsert" a promise pending value or undefined if canceled
+ */
+type MappedValue<V> = V | Promise<V | undefined>
 
 /** Upsert result */
 export interface UpsertResult<V> {
 	/**
 	 * Target value
 	 */
-	value: V | Promise<V>,
+	value: MappedValue<V>,
 	/**
 	 * The weight of the item,
 	 * @default 1
@@ -62,7 +68,7 @@ interface LinkedNode<K, V> {
 /** Item key,value */
 interface ItemNode<K, V> {
 	/** Target value */
-	value: V | Promise<V>
+	value: MappedValue<V>
 	/** Target key */
 	key: K
 	/** Object weight */
@@ -191,12 +197,16 @@ export default class LRU_TTL<K, V> implements LinkedNode<K, V>{
 	get tempWeight() { return this.#tempWeight; }
 	/** Get permanent items size */
 	get permanentWeight() { return this.#permanentWeight; }
+	/** Get permanent entires count */
+	get permanentLength() { return this.#permanentLength; }
+	/** Get temporary entries count */
+	get tempLength() { return this.#tempLength; }
 
 	/** Check if a key is in the cache */
 	has(key: K) { return this.#map.has(key); }
 
 	/** Add value to cache */
-	set(key: K, value: V | Promise<V>, weight: number = 1, isPermanent: boolean = false): this {
+	set(key: K, value: MappedValue<V>, weight: number = 1, isPermanent: boolean = false): this {
 		const item = this.#map.get(key);
 		if (item == null) {
 			this.#set(key, value, weight, isPermanent);
@@ -240,12 +250,12 @@ export default class LRU_TTL<K, V> implements LinkedNode<K, V>{
 	 * Add permanent element to the cache
 	 * Will persist until user removes it manually
 	 */
-	setPermanent(key: K, value: V | Promise<V>, weight: number = 1): this {
+	setPermanent(key: K, value: MappedValue<V>, weight: number = 1): this {
 		return this.set(key, value, weight, true);
 	}
 
 	/** Get element from the cache */
-	get(key: K): V | Promise<V> | undefined {
+	get(key: K): MappedValue<V> | undefined {
 		const item = this.#map.get(key);
 		const itemExists = item != null;
 		if (itemExists) {
@@ -262,7 +272,7 @@ export default class LRU_TTL<K, V> implements LinkedNode<K, V>{
 	}
 
 	/** Get element from the cache without changing it's timeout and LRU */
-	peek(key: K): V | Promise<V> | undefined {
+	peek(key: K): MappedValue<V> | undefined {
 		return this.#map.get(key)?.value;
 	}
 
@@ -302,7 +312,7 @@ export default class LRU_TTL<K, V> implements LinkedNode<K, V>{
 	}
 
 	/** Upsert value */
-	upsert(key: K, additionalArgs?: any): V | Promise<V> {
+	upsert(key: K, additionalArgs?: any): MappedValue<V> | undefined {
 		let value = this.get(key);
 		if (value != null) {
 			return value;
@@ -314,12 +324,16 @@ export default class LRU_TTL<K, V> implements LinkedNode<K, V>{
 				const pendingValue = res.then((v) => {
 					const valueNotChangedOrRemoved = pendingValue === this.#map.get(key)?.value;
 					if (valueNotChangedOrRemoved) {
-						this.set(key, v.value, v.weight ?? 1, v.isPermanent ?? false);
+						if (v == null) this.delete(key); // fetching canceled
+						else this.set(key, v.value, v.weight ?? 1, v.isPermanent ?? false);
 					}
-					return v.value;
+					return v?.value;
 				});
 				this.#set(key, pendingValue, 1, true); // Store the promise as a value until resolved
 				return pendingValue;
+			} else if (res == null) {  // fetching canceled
+				this.delete(key);
+				return undefined;
 			} else {
 				this.#set(key, res.value, res.weight ?? 1, !!res.isPermanent);
 				return res.value;
@@ -341,7 +355,7 @@ export default class LRU_TTL<K, V> implements LinkedNode<K, V>{
 	}
 
 	/** Get and delete */
-	getAndDelete(key: K): V | Promise<V> | undefined {
+	getAndDelete(key: K): MappedValue<V> | undefined {
 		const item = this.#map.get(key);
 		if (item != null) {
 			this.#delete(item);
@@ -479,7 +493,7 @@ export default class LRU_TTL<K, V> implements LinkedNode<K, V>{
 	keys(): IterableIterator<K> { return this.#map.keys() }
 
 	/** Values */
-	*values(): IterableIterator<V | Promise<V>> {
+	*values(): IterableIterator<MappedValue<V>> {
 		var it = this.#map.values();
 		var p = it.next()
 		while (!p.done) {
@@ -488,7 +502,7 @@ export default class LRU_TTL<K, V> implements LinkedNode<K, V>{
 	}
 
 	/** ForEach */
-	forEach(cb: (value: V | Promise<V>, key: K, cache: this, metadata: ItemNode<K, V>) => void, thisArg: any) {
+	forEach(cb: (value: MappedValue<V>, key: K, cache: this, metadata: ItemNode<K, V>) => void, thisArg: any) {
 		var it = this.#map.values();
 		var p = it.next();
 		if (arguments.length === 1) thisArg = this;
@@ -512,7 +526,7 @@ export default class LRU_TTL<K, V> implements LinkedNode<K, V>{
 	 * Add missing element to the cache
 	 * !make sure "key" is missing on the cache before calling this method
 	 */
-	#set(key: K, value: V | Promise<V>, weight: number, isPermanent: boolean) {
+	#set(key: K, value: MappedValue<V>, weight: number, isPermanent: boolean) {
 		// Create and add to Map
 		const previousHead = this._next;
 		const item: Item<K, V> = {
