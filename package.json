@@ -1,6 +1,6 @@
 {
   "name": "lru-ttl-cache",
-  "version": "2.4.4",
+  "version": "3.0.0",
   "description": "Fast LRU and TTL cache with upsert and promise option",
   "main": "dist/commonjs/index.js",
   "exports": {
@@ -31,6 +31,7 @@
   "devDependencies": {
     "@types/benchmark": "^2.1.1",
     "@types/bytes": "^3.1.1",
+    "@types/chai": "^4.3.1",
     "@types/gulp": "^4.0.8",
     "@types/gulp-filter": "^3.0.33",
     "@types/gulp-rename": "^2.0.1",
@@ -41,6 +42,7 @@
     "@types/node": "^18.0.0",
     "@types/timestring": "^6.0.2",
     "benchmark": "^2.1.4",
+    "chai": "^4.3.6",
     "chalk": "^5.0.1",
     "cli-table": "^0.3.11",
     "gulp": "^4.0.2",

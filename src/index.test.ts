@@ -1,29 +1,55 @@
 import { describe, it } from 'mocha';
-import Assert from 'assert'
 import LRU_TTL from '.';
+import { expect } from 'chai';
 
-describe('Cache Test', function () {
+describe('LRU test', function () {
+	const CACHE_MAX_SIZE = 10;
+	const PERMANENT_ITEMS_COUNT = 5;
 	var cache: LRU_TTL<any, any>;
+
 	this.beforeAll(function () {
 		cache = new LRU_TTL({
-			ttl: 20000,
-			max: 4
+			max: CACHE_MAX_SIZE
 		});
 	});
 	// this.beforeEach(function(){
 	//     cache.clearAll();
 	// });
 
-	describe('Check 1', function () {
+	describe('Check LRU works', function () {
+		//* Insert temp items
+		const tempCount = (CACHE_MAX_SIZE / 2) >> 0;
+		it(`Should insert ${tempCount} temporary entries`, function () {
+			for (let i = 0; i < tempCount; ++i) {
+				cache.set(`t${i}`, `value ${i}`);
+			}
+			expect(cache.tempLength).to.eq(tempCount);
+
+		});
+		//* Insert permanent items
+		it(`Should insert ${PERMANENT_ITEMS_COUNT} permanent entries`, function () {
+			for (let i = 0; i < PERMANENT_ITEMS_COUNT; ++i) {
+				cache.set(`per${i}`, `permanent value ${i}`);
+			}
+			expect(cache.permanentLength).to.eq(PERMANENT_ITEMS_COUNT);
+		});
+
+
+		//* Insert values to the cache
 		it('should insert tree elements', function () {
-			cache.set('key1', 'value1')
-				.set('key2', 2)
-				.set(3, { value: 1 });
-			Assert.strictEqual(cache.size, 3);
+			for (let [k, v] of assertedValues) {
+				cache.set(k, v);
+			}
 		});
-		it('Should returns 3', function () {
-			Assert.strictEqual(cache.get('key2'), 2);
-		});
+		//* Insert permanent item
+		const cachePermanentEntries = 1;
+		//* Assert sizes
+		const cacheTempSize = assertedValues.size;
+		const cacheSize = cacheTempSize + cachePermanentEntries;
+		it(`Cache size should be ${cacheSize}`, function () { expect(cache.size).to.eq(cacheSize); });
+		it('Cache weight should be 3', function () { expect(cache.weight).to.eq(3); });
+		it('Cache temp weight should be 3', function () { expect(cache.tempWeight).to.eq(3); });
+		it('Should returns 3', function () { expect(cache.get('key2')).to.eq(2); });
 		it('Should returns "value1"', function () {
 			Assert.strictEqual(cache.get('key1'), 'value1');
 		});

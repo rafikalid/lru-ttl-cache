@@ -1,7 +1,18 @@
-# lru-ttl-cache
-The fastest and more Optimized in memory LRU, MRU and TTL cache for Node.js, Browser and JS-based environnement.
+<h1 align=center> lru-ttl-cache </h1>
+
+<p style="text-align:center">
+	<img alt="version" src="https://img.shields.io/npm/v/lru-ttl-cache?label=version">
+	<!-- <img alt="node-version" src="https://img.shields.io/node/v/ttl-lru-cache">
+	<img alt="downloads per week" src="https://img.shields.io/npm/dw/lru-ttl-cache"> -->
+	<a href="./LICENSE">
+		<img alt="NPM" src="https://img.shields.io/npm/l/lru-ttl-cache">
+	</a>
+</p>
+
+# What is LRU-TTL cache?
+The fastest and most Optimized in memory LRU, MRU and TTL cache for Node.js, Browser and JS-based environnement.
 The only cache that supports permanent items.
-- LRU cache: Removes Least Recently Used items when maximum entries exceeded
+- LRU cache: Removes Least Recently Used items when the maximum entries or size exceeded
 - TTL cache: Removes expired item (Time To Live cache)
 - Permanent items: Items marked as permanent are not removed from the cache until you do it yourself.
 
@@ -37,7 +48,7 @@ You can combine all cache behaviors or use the one you need.
 | quick-lru | 1,088 ops/sec ±0.17% | 15.99% slower |
 | lru | 463 ops/sec ±0.33% | 172.58% slower |
 
-**lru-ttl-cache** is the fastest LRU cache
+> **lru-ttl-cache** is the fastest LRU cache
 
 ## Compared with other TTL caches
 | lru-ttl-cache | 2,466 ops/sec ±0.22% | The fastest |
@@ -48,7 +59,10 @@ You can combine all cache behaviors or use the one you need.
 | memory-cache-ttl | 203 ops/sec ±0.07% | 1114.78% slower |
 | node-ttl | 46.88 ops/sec ±0.35% | 5160.24% slower |
 
-**lru-ttl-cache** is the fastest TTL cache. Even more than 2.4 times faster than the second one on the list!
+> **lru-ttl-cache** is the fastest TTL cache. Even more than 2.4 times faster than the second one on the list!
+
+### An other library not on the list?
+Tell us about the library by opening an issue, so we can add it to the benchmarking.
 
 # Installation
 ```shell
@@ -103,7 +117,7 @@ const cache= new LRU_TTL({
 	 * @example {ttl: '2h 5min' } // Remove items after 2 hours and 5 minutes
 	 * @see https://www.npmjs.com/package/timestring for more options
 	 */
-	ttl:	'10m', // 10 minutes
+	ttl:	'10min', // 10 minutes
 	/**
 	 * To enhance performance, items will be removed
 	 * between "ttl" and "ttl + ttlResolution"
