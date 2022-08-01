@@ -1,0 +1,26 @@
+{
+	"name": "inovorder-dev",
+	"build": {
+		"dockerfile": "dev.Dockerfile",
+		"args": {
+			"VARIANT": "14"
+		}
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"dbaeumer.vscode-eslint"
+			]
+		}
+	},
+	"postCreateCommand": "bash .devcontainer/boot.sh",
+	"remoteUser": "node",
+	"features": {
+		"git": "latest"
+	},
+	"hostRequirements": {
+		"cpus": 4,
+		"memory": "8gb",
+		"storage": "32gb"
+	}
+}
