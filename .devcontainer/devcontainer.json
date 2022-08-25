@@ -1,11 +1,9 @@
 {
-	"name": "inovorder-dev",
-	"build": {
-		"dockerfile": "dev.Dockerfile",
-		"args": {
-			"VARIANT": "14"
-		}
-	},
+	"name": "lru-ttl-cache-dev",
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "workspace",
+	"workspaceFolder": "/workspace",
+	"shutdownAction": "stopCompose",
 	"customizations": {
 		"vscode": {
 			"extensions": [
@@ -17,10 +15,10 @@
 	"remoteUser": "node",
 	"features": {
 		"git": "latest"
-	},
-	"hostRequirements": {
-		"cpus": 4,
-		"memory": "8gb",
-		"storage": "32gb"
 	}
+	// "hostRequirements": {
+	// 	"cpus": 4,
+	// 	"memory": "8gb",
+	// 	"storage": "32gb"
+	// }
 }
