@@ -1,0 +1,17 @@
+{
+  "eslint.validate": [
+    "typescript"
+  ],
+  "eslint.workingDirectories": [
+    {
+      "pattern": "./src/**/*.ts"
+    }
+  ],
+  "eslint.options": {},
+  "eslint.packageManager": "yarn",
+  "editor.formatOnSave": true,
+  "eslint.alwaysShowStatus": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true
+  }
+}
