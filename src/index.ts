@@ -603,12 +603,13 @@ export default class LRU_TTL<K, V> implements LinkedNode<K, V>{
 		const map = this.#map;
 		let item = this._prev as Item<K, V>;
 
-		let weight = 0;
+		let reducedWeight = 0;
 		while ((item as unknown) !== this && item.at < expires) {
-			weight += item.weight;
+			reducedWeight += item.weight;
 			map.delete(item.key);
 			item = item._prev as Item<K, V>;
 		}
+		this.#tempWeight= reducedWeight;
 		// Check if clear everything
 		if ((item as unknown) === this) this.clearAll();
 		else {

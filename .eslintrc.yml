@@ -4,12 +4,21 @@ env:
 extends:
   - "eslint:recommended"
   - "plugin:@typescript-eslint/recommended"
+  - "plugin:@typescript-eslint/recommended-requiring-type-checking"
+  - "plugin:@typescript-eslint/strict"
+  - "plugin:jest/recommended"
+  - "plugin:jest-formatting/recommended"
+  - "plugin:prettier/recommended"
+  - "prettier"
 parser: "@typescript-eslint/parser"
 parserOptions:
-  ecmaVersion: 12
+  project: ./tsconfig.json
+  ecmaVersion: 2020
   sourceType: module
 plugins:
   - "@typescript-eslint"
+  - "prettier"
+  - "jest-formatting"
 rules:
   indent:
     - error
@@ -49,4 +58,13 @@ rules:
     - always
   no-array-constructor:
     - error
+    - always
+  camelcase:
+    - warn
+    - always
+  no-param-reassign:
+    - warn
+    - always
+  no-useless-constructor:
+    - warn
     - always
