@@ -1,16 +1,16 @@
 {
   "name": "lru-ttl-cache",
-  "version": "3.0.0",
-  "description": "Fast LRU and TTL cache with upsert and promise option",
-  "main": "dist/commonjs/index.js",
+  "version": "3.1.0",
+  "description": "Fast LRU and TTL cache with upsert and promise support",
+  "main": "dist/cjs/index.js",
   "exports": {
-    "require": "./dist/commonjs/index.js",
-    "import": "./dist/module/index.mjs"
+    "require": "./dist/cjs/index.js",
+    "import": "./dist/esm/index.mjs"
   },
   "scripts": {
     "start": "tsc",
-    "build": "tsc -p tsconfig.esm.build.json && tsc -p tsconfig.cjs.build.json",
-    "test": "yarn gulp --prod && yarn mocha",
+    "build": "tsc -p tsconfig.esm.build.json && tsc -p tsconfig.cjs.build.json && terser dist/esm/index.js -o dist/esm/index.js -m toplevel && terser dist/cjs/index.js -o dist/cjs/index.js -m toplevel",
+    "test": "echo no test found && false",
     "benchmark": "node --expose-gc benchmark/lru-bench.mjs && node --expose-gc benchmark/ttl-bench.mjs"
   },
   "repository": {
@@ -31,13 +31,13 @@
   },
   "homepage": "https://github.com/rafikalid/lru-ttl-cache#readme",
   "devDependencies": {
-    "@types/benchmark": "^2.1.1",
+    "@types/benchmark": "^2.1.2",
     "@types/bytes": "^3.1.1",
     "@types/ms": "^0.7.31",
-    "@types/node": "^18.7.13",
+    "@types/node": "^18.7.15",
     "@types/timestring": "^6.0.2",
-    "@typescript-eslint/eslint-plugin": "^5.35.1",
-    "@typescript-eslint/parser": "^5.35.1",
+    "@typescript-eslint/eslint-plugin": "^5.36.2",
+    "@typescript-eslint/parser": "^5.36.2",
     "benchmark": "^2.1.4",
     "eslint": "^8.23.0",
     "eslint-config-prettier": "^8.5.0",
