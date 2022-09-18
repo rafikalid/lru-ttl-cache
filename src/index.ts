@@ -90,7 +90,7 @@ const DEFAULT_OPTIONS: Options<any, any> = {
 	onUpsert: undefined
 };
 
-export default class LRU_TTL<K, V> implements LinkedNode<K, V>{
+export default class LRU_TTL<K= any, V= any> implements LinkedNode<K, V>{
 	/** Head: Most Recently Used item (newest) */
 	_next: LinkedNode<K, V>;
 	/** Tail: Least Recently Used item (oldest) */
