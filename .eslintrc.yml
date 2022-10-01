@@ -20,51 +20,39 @@ plugins:
   - "prettier"
   - "jest-formatting"
 rules:
-  indent:
-    - error
-    - tab
+  # indent:
+  #   - error
+  #   - tab
   linebreak-style:
     - error
     - unix
-  quotes:
-    - error
-    - single
+  # quotes:
+  #   - error
+  #   - single
   semi:
     - error
     - always
   consistent-return:
     - warn
-    - always
   default-case:
     - warn
-    - always
   default-case-last:
     - warn
-    - always
   guard-for-in:
     - warn
-    - always
   no-alert:
     - warn
-    - always
   no-caller:
-    - warn
-    - always
+    - error
   no-eval:
     - error
-    - always
   no-implicit-globals:
     - error
-    - always
   no-array-constructor:
     - error
-    - always
   camelcase:
     - warn
-    - always
   no-param-reassign:
     - warn
-    - always
   no-useless-constructor:
     - warn
-    - always
