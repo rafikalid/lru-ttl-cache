@@ -1,58 +1,59 @@
 env:
-  browser: false
-  es2021: true
+    browser: false
+    es2021: true
 extends:
-  - "eslint:recommended"
-  - "plugin:@typescript-eslint/recommended"
-  - "plugin:@typescript-eslint/recommended-requiring-type-checking"
-  - "plugin:@typescript-eslint/strict"
-  - "plugin:jest/recommended"
-  - "plugin:jest-formatting/recommended"
-  - "plugin:prettier/recommended"
-  - "prettier"
-parser: "@typescript-eslint/parser"
+    - 'eslint:recommended'
+    - 'plugin:@typescript-eslint/recommended'
+    - 'plugin:@typescript-eslint/recommended-requiring-type-checking'
+    - 'plugin:@typescript-eslint/strict'
+    - 'plugin:jest/recommended'
+    - 'plugin:jest-formatting/recommended'
+    - 'plugin:prettier/recommended'
+    - 'prettier'
+parser: '@typescript-eslint/parser'
 parserOptions:
-  project: ./tsconfig.json
-  ecmaVersion: 2020
-  sourceType: module
+    project: ./tsconfig.json
+    ecmaVersion: 2020
+    sourceType: module
 plugins:
-  - "@typescript-eslint"
-  - "prettier"
-  - "jest-formatting"
+    - '@typescript-eslint'
+    - 'prettier'
+    - 'jest-formatting'
 rules:
-  # indent:
-  #   - error
-  #   - tab
-  linebreak-style:
-    - error
-    - unix
-  # quotes:
-  #   - error
-  #   - single
-  semi:
-    - error
-    - always
-  consistent-return:
-    - warn
-  default-case:
-    - warn
-  default-case-last:
-    - warn
-  guard-for-in:
-    - warn
-  no-alert:
-    - warn
-  no-caller:
-    - error
-  no-eval:
-    - error
-  no-implicit-globals:
-    - error
-  no-array-constructor:
-    - error
-  camelcase:
-    - warn
-  no-param-reassign:
-    - warn
-  no-useless-constructor:
-    - warn
+    # indent:
+    #   - error
+    #   - tab
+    linebreak-style:
+        - error
+        - unix
+    # quotes:
+    #   - error
+    #   - single
+    semi:
+        - error
+        - always
+    consistent-return:
+        - warn
+    default-case:
+        - warn
+    default-case-last:
+        - warn
+    guard-for-in:
+        - warn
+    no-alert:
+        - warn
+    no-caller:
+        - error
+    no-eval:
+        - error
+    no-implicit-globals:
+        - error
+    no-array-constructor:
+        - error
+    camelcase:
+        - warn
+    no-param-reassign:
+        - warn
+    no-useless-constructor:
+        - warn
+    no-explicit-any: 0

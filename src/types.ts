@@ -1,4 +1,14 @@
-import { UnitValue } from "utils/unit-parser";
+import type LRU_TTL from 'cache';
+import { UnitValue } from 'utils/unit-parser';
+
+/**
+ * Set interface items as required but can have undefined
+ */
+export type RequireAllKeys<T> = OrUndefined<Required<T>>;
+
+type OrUndefined<T> = {
+	[k in keyof T]: T[k] | undefined;
+};
 
 /**
  * Cache Options
@@ -60,17 +70,17 @@ export interface Options<K, V, UpsertArgs = unknown> {
 export type UpsertCb<K, V, UpsertArgs = unknown> = (
 	key: K,
 	additionalArgs?: UpsertArgs
-) => MaybePromise<UpsertResult<V>>;
+) => Maybe<UpsertResult<V>>;
 
 /** Result could be promise or undefined */
-export type MaybePromise<T> = T | undefined | Promise<MaybePromise<T>>;
+export type Maybe<T> = T | undefined | null;
 
 /** Upsert result */
 export interface UpsertResult<V> {
 	/**
 	 * Item value
 	 */
-	value: MaybePromise<V>;
+	value: Maybe<V>;
 	/**
 	 * The weight of the item,
 	 * @default 1
@@ -94,17 +104,19 @@ export interface UpsertResult<V> {
  * │ cache Tail	├──────────────────┤ i1 ├───────···────────┤ in ├──────────────────┤ Cache Head │
  * └────────────┘                  └────┘                  └────┘                  └────────────┘
  */
-export interface LinkedNode<K, V> {
+export interface Linked<K, V> {
 	_before: LinkedNode<K, V>;
 	_after: LinkedNode<K, V>;
 }
+
+export type LinkedNode<K, V> = LRU_TTL<K, V> | Node<K, V>;
 
 /**
  * Item Node metadata
  */
 export interface ItemMetadata<K, V> {
 	/** Item value */
-	value: MaybePromise<V>;
+	value: Maybe<V>;
 	/** Item key */
 	key: K;
 	/** Item weight */
@@ -113,32 +125,14 @@ export interface ItemMetadata<K, V> {
 	locked: boolean;
 }
 /**
- * Temporary Item Node in LinkedNodes
+ * Temporary or Locked Item Node
  */
-export interface TempNode<K, V> extends ItemMetadata<K, V>, LinkedNode<K, V> {
-	locked: false;
+export interface Node<K, V> extends ItemMetadata<K, V>, Linked<K, V> {
+	locked: boolean;
 	/**
 	 * last access
 	 * using local timer instead of timestamp
-	 * for performance pupose
+	 * for performance purpose
 	 */
 	at: number;
 }
-
-/**
- * Locked Node
- */
-export interface LockedNode<K, V> extends ItemMetadata<K, V> {
-	locked: false;
-	/**
-	 * last access
-	 * using local timer instead of timestamp
-	 * for performance pupose
-	 */
-	at: number;
-}
-
-/**
- * Node
- */
-export type Node<K, V> = TempNode<K, V> | LockedNode<K, V>;
