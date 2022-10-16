@@ -575,7 +575,11 @@ export default class LRU_TTL<K = any, V = any, UpsertArgs = any>
 
 	/** Create cache from LRU_TTL, Map or IterableIterator<[K, V]> */
 	static from<K, V, UpsertArgs = unknown>(
-		data: LRU_TTL<K, V, UpsertArgs> | Map<K, V> | IterableIterator<[K, V]>
+		data:
+			| LRU_TTL<K, V, UpsertArgs>
+			| Map<K, V>
+			| IterableIterator<[K, V]>
+			| [key: K, value: Maybe<V>, weight?: number, isLocked?: boolean][]
 	): LRU_TTL<K, V, UpsertArgs> {
 		let cache: LRU_TTL<K, V, UpsertArgs>;
 		if (data instanceof LRU_TTL) {
@@ -595,7 +599,13 @@ export default class LRU_TTL<K = any, V = any, UpsertArgs = any>
 	}
 
 	/** Append all items from Map, Cache or Iterator<K, V> */
-	addAll(data: LRU_TTL<K, V> | Map<K, V> | IterableIterator<[K, V]>) {
+	addAll(
+		data:
+			| LRU_TTL<K, V>
+			| Map<K, V>
+			| IterableIterator<[K, V]>
+			| [key: K, value: Maybe<V>, weight?: number, isLocked?: boolean][]
+	) {
 		if (data instanceof LRU_TTL) {
 			const it = data.#map.values();
 			let p = it.next();
@@ -603,6 +613,11 @@ export default class LRU_TTL<K = any, V = any, UpsertArgs = any>
 				const item = p.value;
 				this.set(item.key, item.value, item.weight, item.locked);
 				p = it.next();
+			}
+		} else if (Array.isArray(data)) {
+			for (let i = 0, len = data.length; i < len; ++i) {
+				const item = data[i];
+				this.set(...item);
 			}
 		} else {
 			const it = data instanceof Map ? data.entries() : data;
