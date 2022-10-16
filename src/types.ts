@@ -153,7 +153,7 @@ export interface ItemMetadata<K, V> {
 	 * This enables you only to sort items depending
 	 * on adding date.
 	 */
-	AddedAt: number;
+	addedAt: number;
 	/**
 	 * last access
 	 * using local timer instead of timestamp

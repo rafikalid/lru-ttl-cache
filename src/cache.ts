@@ -73,17 +73,6 @@ export default class LRU_TTL<K = any, V = any, UpsertArgs = any>
 	/** Timer interval reference */
 	#timerRef: NodeJS.Timeout | undefined = undefined;
 
-	/**
-	 * Keep this value to "undefined"
-	 * Added for performance purpose only
-	 */
-	readonly value = undefined;
-	/**
-	 * Keep this value to "undefined"
-	 * Added for performance purpose only
-	 */
-	readonly key = undefined;
-
 	constructor(options?: Options<K, V, UpsertArgs>) {
 		if (options != null) {
 			if (options.max != null) this.max = options.max;
@@ -252,7 +241,7 @@ export default class LRU_TTL<K = any, V = any, UpsertArgs = any>
 	 * @example const lru_value= cache.lru.value; // undefined if the cache is empty or lru value is "undefined"
 	 * @example const lru_key= cache.lru.key; // undefined if cache empty or the key is "undefined"
 	 */
-	get lru(): LinkedNode<K, V> {
+	get lru(): Partial<ItemMetadata<K, V>> {
 		return this._after;
 	}
 
@@ -262,7 +251,7 @@ export default class LRU_TTL<K = any, V = any, UpsertArgs = any>
 	 * @example const mru_value= cache.mru.value;
 	 * @example const mru_key= cache.mru.key;
 	 */
-	get mru(): LinkedNode<K, V> {
+	get mru(): Partial<ItemMetadata<K, V>> {
 		return this._before;
 	}
 
@@ -321,7 +310,7 @@ export default class LRU_TTL<K = any, V = any, UpsertArgs = any>
 			//* Set new values
 			if (item.value !== value) {
 				item.value = value;
-				item.AddedAt = this.#now;
+				item.addedAt = this.#now;
 			}
 			item.weight = weight;
 			item.locked = isLocked;
@@ -334,7 +323,7 @@ export default class LRU_TTL<K = any, V = any, UpsertArgs = any>
 				value,
 				weight,
 				locked: isLocked,
-				AddedAt: this.#now,
+				addedAt: this.#now,
 				lastAccess: this.#now,
 				_before: previousHead,
 				_after: this
