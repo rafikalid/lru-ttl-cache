@@ -78,6 +78,11 @@ export default class LRU_TTL<K = any, V = any, UpsertArgs = any>
 	 * Added for performance purpose only
 	 */
 	readonly value = undefined;
+	/**
+	 * Keep this value to "undefined"
+	 * Added for performance purpose only
+	 */
+	readonly key = undefined;
 
 	constructor(options?: Options<K, V, UpsertArgs>) {
 		if (options != null) {
@@ -241,14 +246,24 @@ export default class LRU_TTL<K = any, V = any, UpsertArgs = any>
 		return this.#lockedWeight;
 	}
 
-	/** Get Least Recently Used item */
-	get lru(): Maybe<V> | undefined {
-		return this._after.value;
+	/**
+	 * Get Least Recently Used item metadata
+	 * If the cache is empty, this will return the cache itself
+	 * @example const lru_value= cache.lru.value; // undefined if the cache is empty or lru value is "undefined"
+	 * @example const lru_key= cache.lru.key; // undefined if cache empty or the key is "undefined"
+	 */
+	get lru(): LinkedNode<K, V> {
+		return this._after;
 	}
 
-	/** Get Most Recently Used item */
-	get mru(): Maybe<V> | undefined {
-		return this._before.value;
+	/**
+	 * Get Most Recently Used item's metadata
+	 * If the cache is empty, this will return the cache itself
+	 * @example const mru_value= cache.mru.value;
+	 * @example const mru_key= cache.mru.key;
+	 */
+	get mru(): LinkedNode<K, V> {
+		return this._before;
 	}
 
 	/** Check if a key is in the cache */
@@ -304,10 +319,13 @@ export default class LRU_TTL<K = any, V = any, UpsertArgs = any>
 				this.#tempWeight += weightDelta;
 			}
 			//* Set new values
-			item.value = value;
+			if (item.value !== value) {
+				item.value = value;
+				item.AddedAt = this.#now;
+			}
 			item.weight = weight;
 			item.locked = isLocked;
-			item.at = this.#now; // Used for TTL
+			item.lastAccess = this.#now; // Used for TTL
 		} else {
 			// New item
 			const previousHead = this._before;
@@ -316,7 +334,8 @@ export default class LRU_TTL<K = any, V = any, UpsertArgs = any>
 				value,
 				weight,
 				locked: isLocked,
-				at: this.#now,
+				AddedAt: this.#now,
+				lastAccess: this.#now,
 				_before: previousHead,
 				_after: this
 			};
@@ -381,7 +400,7 @@ export default class LRU_TTL<K = any, V = any, UpsertArgs = any>
 		const item = this.#map.get(key);
 		if (item != null) {
 			// Update ttl
-			item.at = this.#now;
+			item.lastAccess = this.#now;
 			/**
 			 * Check this element is not locked
 			 * and not the MRU
@@ -418,7 +437,7 @@ export default class LRU_TTL<K = any, V = any, UpsertArgs = any>
 	}
 
 	/** Get and remove the Least Recently Used element */
-	popLRU(): Maybe<V> {
+	popLRU(): ItemMetadata<K, V> | undefined {
 		const item = this._after;
 		if (item !== this) {
 			const key = (item as Node<K, V>).key;
@@ -428,7 +447,7 @@ export default class LRU_TTL<K = any, V = any, UpsertArgs = any>
 	}
 
 	/** Get and remove the Most Recently Used element */
-	popMRU(): Maybe<V> {
+	popMRU(): ItemMetadata<K, V> | undefined {
 		const item = this._before;
 		if (item !== this) {
 			const key = (item as Node<K, V>).key;
@@ -441,7 +460,7 @@ export default class LRU_TTL<K = any, V = any, UpsertArgs = any>
 	 * Delete element from the cache
 	 * @return {item} if the item exists before being removed
 	 */
-	delete(key: K): Maybe<V> {
+	delete(key: K): ItemMetadata<K, V> | undefined {
 		const item = this.#map.get(key);
 		if (item != null) {
 			// Remove from map
@@ -462,7 +481,7 @@ export default class LRU_TTL<K = any, V = any, UpsertArgs = any>
 				--this.#tempCount;
 			}
 			this.#onDeleted?.(item, OnDeleteRaison.USER);
-			return item.value;
+			return item;
 		}
 		return undefined;
 	}
@@ -674,11 +693,11 @@ export default class LRU_TTL<K = any, V = any, UpsertArgs = any>
 
 		let tempWeight = this.#tempWeight;
 		let tempCount = this.#tempCount;
-		while (tail !== this && (tail as Node<K, V>).at < expires) {
+		while (tail !== this && (tail as Node<K, V>).lastAccess < expires) {
 			tempWeight -= tail.weight;
 			--tempCount;
 			map.delete((tail as Node<K, V>).key);
-			this.#onDeleted?.(tail, OnDeleteRaison.TTL);
+			this.#onDeleted?.(tail as ItemMetadata<K, V>, OnDeleteRaison.TTL);
 			tail = tail._after;
 		}
 		this.#tempWeight = tempWeight;

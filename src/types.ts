@@ -146,16 +146,22 @@ export interface ItemMetadata<K, V> {
 	weight: number;
 	/** If the item is permanent */
 	locked: boolean;
-}
-/**
- * Temporary or Locked Item Node
- */
-export interface Node<K, V> extends ItemMetadata<K, V>, Linked<K, V> {
-	locked: boolean;
+	/**
+	 * Date of Add
+	 * using local timer instead of timestamp
+	 * for performance purpose
+	 * This enables you only to sort items depending
+	 * on adding date.
+	 */
+	AddedAt: number;
 	/**
 	 * last access
 	 * using local timer instead of timestamp
 	 * for performance purpose
 	 */
-	at: number;
+	lastAccess: number;
 }
+/**
+ * Temporary or Locked Item Node
+ */
+export interface Node<K, V> extends ItemMetadata<K, V>, Linked<K, V> {}
