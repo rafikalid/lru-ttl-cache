@@ -56,6 +56,11 @@ export interface Options<K, V, UpsertArgs = unknown> {
 	 * @optional @param {mixed} additionalArgs. In case you need it, it's the second argument of "cache.upsert(key, additionalArgs)"
 	 */
 	onUpsert?: UpsertCb<K, V, UpsertArgs>;
+
+	/**
+	 * This function is called whenever an item is removed
+	 */
+	onDeleted?: OnDeletedCb<K, V>;
 }
 
 /**
@@ -71,6 +76,24 @@ export type UpsertCb<K, V, UpsertArgs = unknown> = (
 	key: K,
 	additionalArgs?: UpsertArgs
 ) => Maybe<UpsertResult<V>>;
+
+/** OnDeleted: deletion raison */
+export enum OnDeleteRaison {
+	/** Deleted due to TTL */
+	TTL,
+	/** Deleted due to LRU */
+	LRU,
+	/** Deleted by user */
+	USER,
+	/** Cache clear */
+	CLEAR
+}
+
+/** OnDelete: CallBack */
+export type OnDeletedCb<K, V> = (
+	metadata: ItemMetadata<K, V>,
+	raison: OnDeleteRaison
+) => void;
 
 /** Result could be promise or undefined */
 export type Maybe<T> = T | undefined | null;

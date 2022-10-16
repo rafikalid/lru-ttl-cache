@@ -5,6 +5,8 @@ import {
 	LinkedNode,
 	Maybe,
 	Node,
+	OnDeletedCb,
+	OnDeleteRaison,
 	Options,
 	RequireAllKeys,
 	UpsertCb,
@@ -50,6 +52,8 @@ export default class LRU_TTL<K = any, V = any, UpsertArgs = any>
 	#ttlResolutionRaw: number | string | undefined = undefined;
 	/** On upsert callback */
 	#onUpsert: UpsertCb<K, V, UpsertArgs> | undefined = undefined;
+	/** OnDelete callback */
+	#onDeleted: OnDeletedCb<K, V> | undefined = undefined;
 
 	/** Temporary entries count */
 	#tempCount = 0;
@@ -83,6 +87,8 @@ export default class LRU_TTL<K = any, V = any, UpsertArgs = any>
 				this.ttlResolution = options.ttlResolution;
 			if (Reflect.has(options, 'onUpsert'))
 				this.onUpsert = options.onUpsert;
+			if (Reflect.has(options, 'onDeleted'))
+				this.onDeleted = options.onDeleted;
 		}
 	}
 
@@ -194,6 +200,16 @@ export default class LRU_TTL<K = any, V = any, UpsertArgs = any>
 		if (typeof handler === 'function' || handler == null)
 			this.#onUpsert = handler;
 		else throw new Error('Cache: Expected function for "onUpsert"');
+	}
+
+	/** Get OnDelete Callback */
+	get onDeleted() {
+		return this.#onDeleted;
+	}
+	set onDeleted(handler: OnDeletedCb<K, V> | undefined) {
+		if (typeof handler === 'function' || handler == null)
+			this.#onDeleted = handler;
+		else throw new Error('Cache: Expected function for "onDeleted"');
 	}
 
 	/** Get total items in the cache */
@@ -331,6 +347,10 @@ export default class LRU_TTL<K = any, V = any, UpsertArgs = any>
 				tempWeight -= weight;
 				totalWeight -= weight;
 				--tempCount;
+				this.#onDeleted?.(
+					head as ItemMetadata<K, V>,
+					OnDeleteRaison.LRU
+				);
 				head = head._before;
 			} while (tempWeight > max && head !== this);
 			// Detach all removed items
@@ -441,6 +461,7 @@ export default class LRU_TTL<K = any, V = any, UpsertArgs = any>
 				this.#tempWeight -= weight;
 				--this.#tempCount;
 			}
+			this.#onDeleted?.(item, OnDeleteRaison.USER);
 			return item.value;
 		}
 		return undefined;
@@ -498,6 +519,10 @@ export default class LRU_TTL<K = any, V = any, UpsertArgs = any>
 			const map = this.#map;
 			while (item !== this) {
 				map.delete((item as Node<K, V>).key);
+				this.#onDeleted?.(
+					item as ItemMetadata<K, V>,
+					OnDeleteRaison.CLEAR
+				);
 				item = (item as Node<K, V>)._after;
 			}
 			this._after = this._before = this; // Empty linked list
@@ -511,8 +536,14 @@ export default class LRU_TTL<K = any, V = any, UpsertArgs = any>
 	clearLocked(): this {
 		if (this.#tempCount === 0) this.clearAll();
 		else {
-			this.#map.forEach(function (item, key, map) {
-				if (item.locked) map.delete(key);
+			this.#map.forEach((item, key, map) => {
+				if (item.locked) {
+					map.delete(key);
+					this.#onDeleted?.(
+						item as ItemMetadata<K, V>,
+						OnDeleteRaison.CLEAR
+					);
+				}
 			});
 			this.#weight = this.#tempWeight; // Keep only temporary items weight
 			this.#lockedWeight = 0;
@@ -542,9 +573,10 @@ export default class LRU_TTL<K = any, V = any, UpsertArgs = any>
 		if (data instanceof LRU_TTL) {
 			const options: RequireAllKeys<Options<K, V, UpsertArgs>> = {
 				max: data.#max,
-				onUpsert: data.#onUpsert,
 				ttl: data.#ttl,
-				ttlResolution: data.#ttlResolution
+				ttlResolution: data.#ttlResolution,
+				onUpsert: data.#onUpsert,
+				onDeleted: data.#onDeleted
 			};
 			cache = new LRU_TTL(options);
 		} else {
@@ -646,6 +678,7 @@ export default class LRU_TTL<K = any, V = any, UpsertArgs = any>
 			tempWeight -= tail.weight;
 			--tempCount;
 			map.delete((tail as Node<K, V>).key);
+			this.#onDeleted?.(tail, OnDeleteRaison.TTL);
 			tail = tail._after;
 		}
 		this.#tempWeight = tempWeight;
