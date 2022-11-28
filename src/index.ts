@@ -19,6 +19,8 @@ export interface ConstOptions<K, V> {
     ttlInterval?: number | string
     /** Upsert callback: enables to create missing elements */
     upsert?: ((key: K, additionalArgs?: any[]) => UpsertResult<V> | Promise<UpsertResult<V>>) | undefined
+    /** onEvict callback: enables to handle element eviction */
+    onEvict: (metadata: Metadata<K, V>) => void
 }
 
 /** Upsert result */
@@ -50,6 +52,17 @@ interface Node<K, V> extends NodeChain {
     isPermanent: Boolean
 }
 
+export interface Metadata<K, V> {
+    value: V | Promise<V>
+    key: K
+    /** Created timestamp */
+    createdAt: number
+    /** Last access */
+    lastAccess: number
+    /** Is permanent node */
+    isPermanent: Boolean
+}
+
 type NodeReadOnly<K, V> = Readonly<Node<K, V>>
 
 /** Main interface */
@@ -63,6 +76,7 @@ export default class LRU_TTL<K, V> implements NodeChain {
     private _ttlInterval: number
     private _ttlP?: NodeJS.Timeout = undefined;
     private _upsert?: ConstOptions<K, V>["upsert"]
+    private _onEvict?: ConstOptions<K, V>["onEvict"]
 
     /** Temp elements count */
     private _tmpSize: number = 0;
@@ -90,6 +104,7 @@ export default class LRU_TTL<K, V> implements NodeChain {
             a = options.ttlInterval;
             this._ttlInterval = a == null ? Infinity : typeof a === 'number' ? a : MS(a);
             this._upsert = options.upsert;
+            this._onEvict = options.onEvict;
         } else {
             this._max = Infinity;
             this._maxBytes = Infinity;
@@ -376,6 +391,9 @@ export default class LRU_TTL<K, V> implements NodeChain {
         while ((p as NodeChain) !== this && p.lastAccess < expires) {
             bytes += p.bytes;
             map.delete(p.key);
+            if(this._onEvict !== undefined) {
+                this._onEvict(p as Metadata<K,V>)
+            }
             p = p._prev as Node<K, V>;
         }
         // Remove other nodes
