@@ -23,9 +23,13 @@ describe('LRU cache', function () {
 		const key = 'key123';
 		cache.set(key, value);
 		expect(cache.has(key)).toBe(true);
+		expect(cache.size).toBe(1);
 		expect(cache.count).toBe(1);
 		expect(cache.tempCount).toBe(1);
 		expect(cache.lockedCount).toBe(0);
+		expect(cache.weight).toBe(1);
+		expect(cache.tempWeight).toBe(1);
+		expect(cache.lockedWeight).toBe(0);
 		expect(cache.lru.value).toBe(value);
 		expect(cache.mru.value).toBe(value);
 		expect(cache.lru.key).toBe(key);
@@ -40,27 +44,41 @@ describe('LRU cache', function () {
 			cache.set(key, value);
 			const currentCount = i + 1;
 			expect(cache.mru.value).toBe(value);
-			expect(cache.lru.value).toBe(lru);
+			expect(cache.lru.value).toBe(lru.value);
 			expect(cache.count).toBe(currentCount);
 			expect(cache.tempCount).toBe(currentCount);
 		}
 	});
 
 	it('Should remove item as MAX Exceeded', function () {
-		const deletedCb = (cache.onDeleted = jest.fn);
+		cache.onDeleted = jest.fn();
 		for (let i = MAX, len = MAX + 10; i < len; i++) {
 			const value = `v ${i}`;
 			const key = `k ${i}`;
 			const lru = cache.lru;
 			cache.set(key, value);
-			expect(deletedCb).toHaveBeenCalledWith(lru, OnDeleteRaison.LRU);
+			expect(cache.onDeleted).toHaveBeenCalledWith(
+				lru,
+				OnDeleteRaison.LRU
+			);
 			expect(cache.mru.value).toBe(value);
 			expect(cache.lru).not.toBe(lru);
 			expect(cache.has(key)).toBe(true);
-			expect(cache.has(lru.key!)).toBe(true);
+			expect(cache.has(lru.key!)).toBe(false);
 			expect(cache.count).toBe(MAX);
 			expect(cache.tempCount).toBe(MAX);
 		}
+	});
+
+	it('Should replace item without changing size', function () {
+		const key = 'key001';
+		cache.set(key, '11');
+		const size = cache.size;
+
+		cache.set(key, 'value');
+		expect(cache.size).toBe(size);
+		expect(cache.mru.key).toBe(key);
+		expect(cache.mru.value).toBe('value');
 	});
 
 	it('Should set any element we get as MRU', function () {

@@ -343,27 +343,27 @@ export default class LRU_TTL<K = any, V = any, UpsertArgs = any>
 			}
 		}
 		//* Apply LRU
-		if (this.#tempWeight > this.#max && this._before !== this) {
-			let head = this._before;
+		if (this.#tempWeight > this.#max && this._after !== this) {
+			let lru = this._after;
 			const max = this.#max;
 			let tempWeight = this.#tempWeight;
 			let tempCount = this.#tempCount;
 			let totalWeight = this.#weight;
 			do {
-				map.delete((head as Node<K, V>).key);
-				const weight = head.weight;
+				map.delete((lru as Node<K, V>).key);
+				const weight = lru.weight;
 				tempWeight -= weight;
 				totalWeight -= weight;
 				--tempCount;
 				this.#onDeleted?.(
-					head as ItemMetadata<K, V>,
+					lru as ItemMetadata<K, V>,
 					OnDeleteRaison.LRU
 				);
-				head = head._before;
-			} while (tempWeight > max && head !== this);
+				lru = lru._after;
+			} while (tempWeight > max && lru !== this);
 			// Detach all removed items
-			this._before = head;
-			head._after = this;
+			this._after = lru;
+			lru._before = this;
 			// Adjust weight
 			this.#tempWeight = tempWeight;
 			this.#weight = totalWeight;

@@ -69,4 +69,79 @@ describe('Check options', function () {
 		expect(item.key).toBe(key);
 		expect(cache.count).toBe(count - 1);
 	});
+
+	it('max setter', function () {
+		const cache = new LRU_TTL();
+		cache.max = '77KB';
+		expect(cache.max).toBe('77KB');
+		expect(cache.evalMax).toBe(77 * 2 ** 10);
+		expect(() => {
+			cache.max = -99;
+		}).toThrow();
+		expect(() => {
+			cache.max = true as unknown as number;
+		}).toThrow();
+	});
+
+	it('ttl setter', function () {
+		const cache = new LRU_TTL();
+		cache.ttl = '1h';
+		expect(cache.ttl).toBe('1h');
+		expect(cache.evalTtl).toBe(3600_000);
+
+		expect(() => {
+			cache.ttl = 34.345;
+		}).toThrow();
+	});
+
+	it('ttlResolution setter', function () {
+		const cache = new LRU_TTL();
+		cache.ttlResolution = '1min';
+		expect(cache.ttlResolution).toBe('1min');
+		expect(cache.evalTtlResolution).toBe(60_000);
+
+		expect(() => {
+			cache.ttlResolution = 34.345;
+		}).toThrow();
+	});
+
+	it('onUpsert setter', function () {
+		const cache = new LRU_TTL();
+		const onUpsert = function (key: string) {
+			return { value: `${key}---` };
+		};
+		cache.onUpsert = onUpsert;
+		expect(cache.onUpsert).toBe(onUpsert);
+
+		cache.onUpsert = undefined;
+		expect(cache.onUpsert).toBe(undefined);
+
+		expect(() => {
+			cache.onUpsert = 'wrong value' as unknown as undefined;
+		}).toThrow();
+	});
+
+	it('onDeleted setter', function () {
+		const cache = new LRU_TTL();
+		const onDeleted = function (item: any, raison: any) {
+			console.log(item);
+		};
+		cache.onDeleted = onDeleted;
+		expect(cache.onDeleted).toBe(onDeleted);
+
+		cache.onDeleted = undefined;
+		expect(cache.onDeleted).toBe(undefined);
+
+		expect(() => {
+			cache.onDeleted = 'wrong value' as unknown as undefined;
+		}).toThrow();
+	});
+
+	it('Should return undefined for missing values', function () {
+		const cache = new LRU_TTL();
+		expect(cache.get('key')).toBeUndefined();
+		expect(cache.popLRU()).toBeUndefined();
+		expect(cache.popMRU()).toBeUndefined();
+		expect(cache.delete('key')).toBeUndefined();
+	});
 });
