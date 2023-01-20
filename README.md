@@ -1,4 +1,4 @@
-> New version faster and with more features is comming next week
+> A new faster version, well tested and with more features is coming on February 01, 2023
 
 # lru-ttl-cache
 Super fast Optimized in memory LRU and TTL cache.
