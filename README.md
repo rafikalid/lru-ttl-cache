@@ -19,7 +19,7 @@ The only cache that supports permanent items.
 You can combine all cache behaviors or use the one you need.
 
 # Why to use:
-- The Fastest in memory cache (@see benchmarking)
+- The Fastest JS in memory cache (@see benchmarking)
 - One cache for both TTL (Time To Live) and LRU (Least Recently Used)
 - Can store permanent items (Could be removed explicitly by calling ::delete)
 - Could set an optional memory-size or weight for each element and set a maximum size (bytes) for the whole cache
@@ -28,7 +28,6 @@ You can combine all cache behaviors or use the one you need.
 - Uses a "HashMap" instead of a plain JavaScript object. This increases performance regardless of insertions and deletions.
 - Could use any JavaScript type as a key (String, Numbers, BigInt, Objects, …)
 - Optimized for V8 engine (used by nodeJS and other backend frameworks)
-- 0 dependencies
 - 100% JavaScript implementation
 
 # Compared to others?
@@ -39,7 +38,11 @@ You can combine all cache behaviors or use the one you need.
 - The fastest javascript cache (@see benchmarking)
 - The lowest memory usage (@see benchmarking)
 
-# Benchmarking (last check: July 1st 2022)
+# Benchmarking (last check: January 1st 2023)
+
+```shell
+ yarn benchmark
+```
 
 ## Compared with other LRU caches
 | lru-ttl-cache | 1,262 ops/sec ±0.19% | The fastest |

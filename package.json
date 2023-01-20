@@ -54,7 +54,7 @@
     "lru": "^3.1.0",
     "lru-cache": "^7.14.0",
     "lru-cache-node": "^1.1.0",
-    "lru-ttl-model": ".",
+    "lru-ttl-cache": "./",
     "memory-cache-ttl": "^1.0.52",
     "microtime": "^3.1.1",
     "node-cache": "^5.1.2",

@@ -124,7 +124,7 @@ describe('Check options', function () {
 	it('onDeleted setter', function () {
 		const cache = new LRU_TTL();
 		const onDeleted = function (item: any, raison: any) {
-			console.log(item);
+			console.log(raison, item);
 		};
 		cache.onDeleted = onDeleted;
 		expect(cache.onDeleted).toBe(onDeleted);

@@ -1,7 +1,8 @@
+/* eslint-disable */
 /** Benchmark */
 import Benchmark from 'benchmark';
 import Chalk from 'chalk';
-import Lru_tll_cache from 'lru-ttl-model';
+import LRU_TTL from 'lru-ttl-cache';
 
 import NodeCache from 'node-cache';
 //@ts-ignore
@@ -58,7 +59,7 @@ suite
 	})
 	//* lru-ttl-cache
 	.add('lru-ttl-cache', function () {
-		_test(new Lru_tll_cache({ ttl: CACHE_TTL }));
+		_test(new LRU_TTL({ ttl: CACHE_TTL }));
 	})
 	//* HOOKS
 	.on('start', function () {

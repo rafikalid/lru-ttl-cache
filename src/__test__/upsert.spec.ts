@@ -1,4 +1,4 @@
-import LRU_TTL from '..';
+// import LRU_TTL from '..';
 
 describe('Should create missing elements', function () {
 	it.todo('Should create cache');
