@@ -1,3 +1,5 @@
+> New version faster and with more features is comming next week
+
 # lru-ttl-cache
 Super fast Optimized in memory LRU and TTL cache.
 - LRU cache: Removes Least Recently Used items
