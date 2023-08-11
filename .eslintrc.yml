@@ -15,7 +15,7 @@ parserOptions:
     project: ./tsconfig.json
     ecmaVersion: 2020
     sourceType: module
-ignorePatterns: ['build.js']
+ignorePatterns: ['build.mjs']
 plugins:
     - '@typescript-eslint'
     - 'prettier'
