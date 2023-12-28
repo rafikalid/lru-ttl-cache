@@ -1,4 +1,4 @@
-> A new faster version, well tested and with more features is coming on Sept 01, 2023
+> A new faster version, well tested and with more features is coming on Jan 03, 2024
 
 # lru-ttl-cache
 
