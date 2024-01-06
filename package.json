@@ -29,6 +29,7 @@
   "homepage": "https://github.com/rafikalid/lru-ttl-cache#readme",
   "packageManager": "yarn@4.0.2",
   "devDependencies": {
+    "@rushstack/eslint-patch": "^1.5.1",
     "@types/eslint": "^8",
     "@types/node": "^20.8.8",
     "@typescript-eslint/eslint-plugin": "^6.9.0",
@@ -42,7 +43,6 @@
     "eslint-plugin-simple-import-sort": "^10.0.0",
     "eslint-plugin-testing-library": "^6.1.0",
     "prettier": "^3.0.3",
-    "typescript": "^5.3.2",
-    "@rushstack/eslint-patch": "^1.5.1"
+    "typescript": "^5.3.3"
   }
 }
