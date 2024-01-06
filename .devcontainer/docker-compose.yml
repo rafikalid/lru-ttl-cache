@@ -1,0 +1,35 @@
+version: "3.9"
+
+services:
+  # WORKSPACE
+  workspace:
+    build:
+      context: .
+      dockerfile: dev.Dockerfile
+      args:
+        # Update 'VARIANT' to pick an LTS version of Node.js: 18, 16, 14.
+        # Append -bullseye or -buster to pin to an OS version.
+        # Use -bullseye variants on local arm64/Apple Silicon.
+        # VARIANT: 20-bullseye
+        DOCKER_BUILDKIT: 1
+    user: node
+    # depends_on:
+    #   - mariadb
+    #   - redis
+    volumes:
+      # Mounts the project folder to '/workspace'.
+      - ..:/workspace:cached
+      # - ssh-agent:/ssh-agent
+    networks:
+      - local_net
+    command: sleep infinity
+    # entrypoint: /workspace/.devcontainer/entrypoint.sh
+networks:
+  local_net:
+  default:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1

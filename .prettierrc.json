@@ -1,0 +1,18 @@
+{
+  "useTabs": true,
+  "singleQuote": true,
+  "printWidth": 80,
+  "tabWidth": 2,
+  "trailingComma": "none",
+  "jsxBracketSameLine": false,
+  "jsxSingleQuote": false,
+  "semi": true,
+  "arrowParens": "always",
+  "bracketSpacing": true,
+  "overrides": [{
+    "files": ["**/*.css", "**/*.scss"],
+    "options": {
+      "singleQuote": false
+    }
+  }]
+}

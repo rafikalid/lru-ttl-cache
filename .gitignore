@@ -104,6 +104,3 @@ dist
 .tern-port
 
 /dist
-/gulp-dist
-/test-dist
-/test-reports/*
