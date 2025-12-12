@@ -1,6 +1,6 @@
 {
   "name": "lru-ttl-cache",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "description": "Fast LRU and TTL cache with upsert and promise option",
   "main": "dist/commonjs/index.js",
   "exports": {
@@ -27,22 +27,8 @@
     "url": "https://github.com/rafikalid/lru-ttl-cache/issues"
   },
   "homepage": "https://github.com/rafikalid/lru-ttl-cache#readme",
-  "packageManager": "yarn@4.0.2",
-  "devDependencies": {
-    "@rushstack/eslint-patch": "^1.5.1",
-    "@types/eslint": "^8",
-    "@types/node": "^20.8.8",
-    "@typescript-eslint/eslint-plugin": "^6.9.0",
-    "@typescript-eslint/parser": "^6.9.0",
-    "esbuild": "^0.19.8",
-    "eslint": "^8.52.0",
-    "eslint-config-prettier": "^9.0.0",
-    "eslint-plugin-import": "^2.29.0",
-    "eslint-plugin-jest": "^27.4.3",
-    "eslint-plugin-prettier": "^5.0.1",
-    "eslint-plugin-simple-import-sort": "^10.0.0",
-    "eslint-plugin-testing-library": "^6.1.0",
-    "prettier": "^3.0.3",
-    "typescript": "^5.3.3"
+  "devDependencies": {},
+  "dependencies": {
+    "typescript": "^5.9.3"
   }
 }
