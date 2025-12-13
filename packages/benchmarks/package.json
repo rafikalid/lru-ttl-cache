@@ -1,0 +1,12 @@
+{
+	"name": "@lru-ttl-cache/benchmarks",
+	"type": "module",
+	"private": true,
+	"scripts": {
+		"bench": "node ./src/index.ts"
+	},
+	"dependencies": {
+		"@lru-ttl-cache/core": "workspace:*",
+		"benchmark": "^2.1.4"
+	}
+}

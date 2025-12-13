@@ -1,34 +1,20 @@
 {
-  "name": "lru-ttl-cache",
+  "name": "lru-ttl-cache-monorepo",
   "version": "4.0.0",
   "description": "Fast LRU and TTL cache with upsert and promise option",
-  "main": "dist/commonjs/index.js",
-  "exports": {
-    "require": "./dist/commonjs/index.js",
-    "import": "./dist/module/index.mjs"
-  },
-  "scripts": {
-    "test": "exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/rafikalid/lru-ttl-cache.git"
-  },
-  "keywords": [
-    "LRU",
-    "TTL",
-    "CACHE",
-    "Upsert",
-    "Promise"
-  ],
-  "author": "khalid RAFIK <khalid.rfk@gmail.com>",
+  "repository": "https://github.com/rafikalid/lru-ttl-cache.git",
+  "author": "khalid rafik <khalid.rfk@gmail.com>",
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/rafikalid/lru-ttl-cache/issues"
+  "packageManager": "yarn@4.12.0",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "yarn workspaces foreach -pt run build",
+    "test": "yarn workspaces foreach -pt run test",
+    "bench": "yarn workspace benchmarks run bench"
   },
-  "homepage": "https://github.com/rafikalid/lru-ttl-cache#readme",
-  "devDependencies": {},
-  "dependencies": {
+  "devDependencies": {
     "typescript": "^5.9.3"
   }
 }
