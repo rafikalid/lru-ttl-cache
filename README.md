@@ -55,30 +55,29 @@ Works in Node.js, browsers, and any JS runtime.
 
 ## ⚖️ Comparison with Competitors
 
-**Last verified:** **December 13, 2025**
+**Last verified:** **December 16, 2025**
 
-| Feature / Library               | **This Cache** | `lru-cache` | `quick-lru` | `node-cache` | `memory-cache` |
-| ------------------------------- | -------------- | ----------- | ----------- | ------------ | -------------- |
-| LRU eviction                    | ✅              | ✅           | ✅           | ❌            | ❌              |
-| MRU access                    | ✅              | ❌           | ❌           | ❌            | ❌              |
-| TTL (time-based expiration)     | ✅              | ⚠️ Limited  | ❌           | ✅            | ✅              |
-| Permanent (non-evictable) items | ✅              | ❌           | ❌           | ❌            | ❌              |
-| Combine multiple strategies     | ✅              | ❌           | ❌           | ❌            | ❌              |
-| Max entries limit               | ✅              | ✅           | ✅           | ✅            | ❌              |
-| Item size / weight support      | ✅              | ⚠️ Partial  | ❌           | ❌            | ❌              |
-| Max total cache weight          | ✅              | ⚠️ Partial  | ❌           | ❌            | ❌              |
-| Sync cache miss upsert          | ✅              | ❌           | ❌           | ❌            | ❌              |
-| Async cache miss upsert         | ✅              | ❌           | ❌           | ❌            | ❌              |
-| Async resolve deduplication     | ✅              | ❌           | ❌           | ❌            | ❌              |
-| Network / DB fetch support      | ✅              | ❌           | ❌           | ❌            | ❌              |
-| Any JS type as key              | ✅              | ⚠️ Mostly   | ⚠️ Mostly   | ⚠️ Mostly    | ⚠️ Mostly      |
-| Works in browser                | ✅              | ❌           | ❌           | ❌            | ❌              |
-| Node.js support                 | ✅              | ✅           | ✅           | ✅            | ✅              |
-| Zero dependencies               | ✅              | ❌           | ✅           | ❌            | ❌              |
-| Memory optimized                | ✅              | ⚠️          | ⚠️          | ❌            | ❌              |
-| Designed for high-throughput    | ✅              | ⚠️          | ⚠️          | ❌            | ❌              |
-| Unpacked size (npm)    | ![size](https://img.shields.io/npm/unpacked-size/lru-ttl-cache?label=)              | ?          | ?          | ?            | ?              |
-| Bundled size (Bundlephobia)    | ?              | ?          | ?          | ?            | ?              |
+| Feature / Library               | **This Cache** | `lru`  | `lru-cache` | `quick-lru` | `memory-cache` | `mnemonist` | `ttl` | `node-cache` | `ttl-cache` | `memory-cache-ttl` | `timed-cache` | `node-ttl` | `@isaacs/ ttlcache` | `cache` |
+| ------------------------------- | -------------- | ------ | ----------- | ----------- | ------------- | ----------- | ------| ------------ | ----------- | ------------------ | -------------- | ---------- | ------------------ | ------- |
+| LRU (Least Recently Used)       | ✅             | ✅     | ✅          | ⚠️ Simulation! | ❌         | ✅          | ❌     | ❌          | ❌           | ❌                 | ❌             | ❌         | ⚠️                 | ❌      |
+| LRU access                      | ✅             | ❌     | ❌          | ⚠️          | ❌            | ❌          | ❌     | ❌          | ❌           | ❌                 | ❌             | ❌         | ❌                 | ❌      |
+| LRU Seek                        | ✅             | ❌     | ❌          | ⚠️          | ❌            | ❌          | ❌     | ❌          | ❌           | ❌                 | ❌             | ❌         | ❌                 | ❌      |
+| MRU access                      | ✅             | ❌     | ❌          | ⚠️ Not MRU! | ❌            | ❌          | ❌     | ❌          | ❌           | ❌                 | ❌             | ❌         | ❌                 | ❌      |
+| MRU Seek                        | ✅             | ❌     | ❌          | ⚠️ Not MRU! | ❌            | ❌          | ❌     | ❌          | ❌           | ❌                 | ❌             | ❌         | ❌                 | ❌      |
+| TTL (time-based expiration)     | ✅             | ❌     | ⚠️ Limited  | ✅          | ✅            | ❌          | ✅     | ✅          | ✅           | ✅                 | ✅             | ✅         | ✅                 | ✅      |
+| Permanent (non-evictable) items | ✅             | ❌     | ❌          | ❌          | ❌            | ❌          | ❌     | ❌          | ❌           | ❌                 | ❌             | ❌         | ❌                 | ❌      |
+| Combine multiple strategies     | ✅             | ❌     | ⚠️ Limited  | ✅          | ❌            | ❌          | ❌     | ❌          | ❌           | ❌                 | ❌             | ❌         | ❌                 | ❌      |
+| Item size / weight support      | ✅             | ❌     | ⚠️ Limited  | ❌          | ❌            | ❌          | ❌     | ❌          | ❌           | ❌                 | ❌             | ❌         | ❌                 | ❌      |
+| Max total cache weight          | ✅             | ❌     | ✅          | ❌          | ❌            | ❌          | ❌     | ❌          | ❌           | ❌                 | ❌             | ❌         | ❌                 | ❌      |
+| Sync cache miss upsert          | ✅             | ❌     | ✅          | ❌          | ❌            | ❌          | ❌     | ❌          | ❌           | ❌                 | ❌             | ❌         | ❌                 | ❌      |
+| Async cache miss upsert         | ✅             | ❌     | ✅          | ❌          | ❌            | ❌          | ❌     | ❌          | ❌           | ❌                 | ❌             | ❌         | ❌                 | ❌      |
+| Async resolve deduplication     | ✅             | ❌     | ❓          | ❌          | ❌            | ❌          | ❌     | ❌          | ❌           | ❌                 | ❌             | ❌         | ❌                 | ❌      |
+| Any JS type as key              | ✅             | ❌     | ⚠️ Limited  | ✅          | ❌            | ❌          | ❌     | ❌          | ❌           | ❌                 | ❌             | ❌         | ✅                 | ❌      |
+| Event Emitter                   | ✅             | ❌     | ❌          | ❌          | ❌            | ❌          | ❌     | ❌          | ❌           | ❌                 | ❌             | ⚠️ Limited | ⚠️ Limited         | ❌      |
+| Custom record onRemove          | ✅             | ⚠️     | ⚠️ Limited  | ⚠️ Limited  | ❌            | ❌          | ❌     | ❌          | ❌           | ❌                 | ✅             | ✅         | ❌                 | ❌      |
+| Zero dependencies               | ✅             | ❌     | ✅          | ✅          | ✅            | ❌          | ✅     | ❌          | ✅           | ❌                 | ✅             | ❌         | ✅                 | ❌      |
+| Unpacked size (npm)             | ![size](https://img.shields.io/npm/unpacked-size/lru-ttl-cache?label=) | ![size](https://img.shields.io/npm/unpacked-size/lru?label=) | ![size](https://img.shields.io/npm/unpacked-size/lru-cache?label=) | ![size](https://img.shields.io/npm/unpacked-size/quick-lru?label=) | ![size](https://img.shields.io/npm/unpacked-size/memory-cache?label=) | ![size](https://img.shields.io/npm/unpacked-size/mnemonist?label=) | ![size](https://img.shields.io/npm/unpacked-size/ttl?label=) | ![size](https://img.shields.io/npm/unpacked-size/node-cache?label=) | ![size](https://img.shields.io/npm/unpacked-size/ttl-cache?label=) | ![size](https://img.shields.io/npm/unpacked-size/memory-cache-ttl?label=) | ![size](https://img.shields.io/npm/unpacked-size/timed-cache?label=) | ![size](https://img.shields.io/npm/unpacked-size/node-ttl?label=) | ![size](https://img.shields.io/npm/unpacked-size/@isaacs/ttlcache?label=) | ![size](https://img.shields.io/npm/unpacked-size/cache?label=) |
+| Bundled size (Bundlephobia)     | ![size](https://img.shields.io/bundlejs/size/lru-ttl-cache?label=) | ![size](https://img.shields.io/bundlejs/size/lru?label=) | ![size](https://img.shields.io/bundlejs/size/lru-cache?label=) | ![size](https://img.shields.io/bundlejs/size/quick-lru?label=) | ![size](https://img.shields.io/bundlejs/size/memory-cache?label=) | ![size](https://img.shields.io/bundlejs/size/mnemonist?label=) | ![size](https://img.shields.io/bundlejs/size/ttl?label=) | ![size](https://img.shields.io/bundlejs/size/node-cache?label=) | ![size](https://img.shields.io/bundlejs/size/ttl-cache?label=) | ![size](https://img.shields.io/bundlejs/size/memory-cache-ttl?label=) | ![size](https://img.shields.io/bundlejs/size/timed-cache?label=) | ![size](https://img.shields.io/bundlejs/size/node-ttl?label=) | ![size](https://img.shields.io/bundlejs/size/@isaacs/ttlcache?label=) | ![size](https://img.shields.io/bundlejs/size/cache?label=) |
 
 ## ⚡ Benchmark
 
@@ -340,7 +339,7 @@ All options are **optional**. You can create a cache with only the features you 
 - **`cache.get(key: any)`** Get the cache record by key; returns `undefined` when missing.
 - **`cache.peek(key)`** Get the cache record by key without affecting its TLL or LRU; returns `undefined` when missing.
 - **`cache.has(key): boolean`** Checks if a `key` is used in the cache.
-- **`cache.delete(key): boolean`** delete the giving record from the cache, returns `true` if item found, `false` if missing.
+- **`cache.delete(key): boolean`** delete the giving record from the cache and return `true`, return `false` if the record doesn't exist.
 - **`cache.clear()`** Remove all records
 
 ---
