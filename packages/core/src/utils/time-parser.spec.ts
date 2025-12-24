@@ -11,7 +11,7 @@ describe('parseTimeExpression', () => {
   });
 
   it('should parse minutes', () => {
-    expect(parseTimeExpression('2m')).toBe(120000);
+    expect(parseTimeExpression('2min')).toBe(120000);
   });
 
   it('should parse hours', () => {
@@ -27,7 +27,7 @@ describe('parseTimeExpression', () => {
   });
 
   it('should parse combined expressions', () => {
-    expect(parseTimeExpression('2d 5h 4m 5s 23ms')).toBe((2*86400 + 5*3600 + 4*60 + 5) * 1000 + 23);
+    expect(parseTimeExpression('2d 5h 4min 5s 23ms')).toBe((2*86400 + 5*3600 + 4*60 + 5) * 1000 + 23);
   });
 
   it('should handle whitespace variations', () => {
@@ -36,7 +36,7 @@ describe('parseTimeExpression', () => {
 
   it('should be case insensitive', () => {
     expect(parseTimeExpression('5S')).toBe(5000);
-    expect(parseTimeExpression('2M')).toBe(120000);
+    expect(parseTimeExpression('2MIN')).toBe(120000);
   });
 
   it('should pass through numeric input', () => {

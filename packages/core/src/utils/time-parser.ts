@@ -24,7 +24,7 @@ export function parseTimeExpression(expression: string | number): number {
       case 's':
         totalMs += value * 1000;
         break;
-      case 'm':
+      case 'min':
         totalMs += value * 60 * 1000;
         break;
       case 'h':
