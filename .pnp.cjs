@@ -38,6 +38,7 @@ const RAW_RUNTIME_STATE =
       [null, {\
         "packageLocation": "./",\
         "packageDependencies": [\
+          ["@types/node", "npm:25.0.3"],\
           ["lru-ttl-cache-monorepo", "workspace:."],\
           ["typescript", "patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"]\
         ],\
@@ -545,6 +546,7 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "./packages/core/",\
         "packageDependencies": [\
           ["@lru-ttl-cache/core", "workspace:packages/core"],\
+          ["@types/node", "npm:25.0.3"],\
           ["tsup", "virtual:176b78ff5009207b0acb226ea9082b93556b8891f1f5a4e636e3738cc55f79c1725de9a336a3c38f64193efbe1727b10a11ea509cc1be2cef77d188c9dd0fd02#npm:8.5.1"],\
           ["typescript", "patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"],\
           ["vitest", "virtual:176b78ff5009207b0acb226ea9082b93556b8891f1f5a4e636e3738cc55f79c1725de9a336a3c38f64193efbe1727b10a11ea509cc1be2cef77d188c9dd0fd02#npm:4.0.15"]\
@@ -808,6 +810,16 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "../../home/node/.yarn/berry/cache/@types-estree-npm-1.0.8-2195bac6d6-10c0.zip/node_modules/@types/estree/",\
         "packageDependencies": [\
           ["@types/estree", "npm:1.0.8"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
+    ["@types/node", [\
+      ["npm:25.0.3", {\
+        "packageLocation": "../../home/node/.yarn/berry/cache/@types-node-npm-25.0.3-b5e8cb0cae-10c0.zip/node_modules/@types/node/",\
+        "packageDependencies": [\
+          ["@types/node", "npm:25.0.3"],\
+          ["undici-types", "npm:7.16.0"]\
         ],\
         "linkType": "HARD"\
       }]\
@@ -1429,6 +1441,7 @@ const RAW_RUNTIME_STATE =
       ["workspace:.", {\
         "packageLocation": "./",\
         "packageDependencies": [\
+          ["@types/node", "npm:25.0.3"],\
           ["lru-ttl-cache-monorepo", "workspace:."],\
           ["typescript", "patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"]\
         ],\
@@ -2145,6 +2158,15 @@ const RAW_RUNTIME_STATE =
         "linkType": "HARD"\
       }]\
     ]],\
+    ["undici-types", [\
+      ["npm:7.16.0", {\
+        "packageLocation": "../../home/node/.yarn/berry/cache/undici-types-npm-7.16.0-0e23b08124-10c0.zip/node_modules/undici-types/",\
+        "packageDependencies": [\
+          ["undici-types", "npm:7.16.0"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
     ["unique-filename", [\
       ["npm:5.0.0", {\
         "packageLocation": "../../home/node/.yarn/berry/cache/unique-filename-npm-5.0.0-605f54f18e-10c0.zip/node_modules/unique-filename/",\
@@ -2179,7 +2201,7 @@ const RAW_RUNTIME_STATE =
           ["@types/jiti", null],\
           ["@types/less", null],\
           ["@types/lightningcss", null],\
-          ["@types/node", null],\
+          ["@types/node", "npm:25.0.3"],\
           ["@types/sass", null],\
           ["@types/sass-embedded", null],\
           ["@types/stylus", null],\
@@ -2248,7 +2270,7 @@ const RAW_RUNTIME_STATE =
           ["@types/edge-runtime__vm", null],\
           ["@types/happy-dom", null],\
           ["@types/jsdom", null],\
-          ["@types/node", null],\
+          ["@types/node", "npm:25.0.3"],\
           ["@types/opentelemetry__api", null],\
           ["@types/vitest__browser-playwright", null],\
           ["@types/vitest__browser-preview", null],\
