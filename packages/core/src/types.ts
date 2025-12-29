@@ -1,9 +1,10 @@
 import { BytesValue } from './utils/bytes-parser';
 
-export interface Options<K, V, ResolverArgsType extends Array<any>> {
+export interface Options<K, V, ResolverArgsType extends any[]> {
   /**
    * Set the maximum allowed size of the cache.
    * By default, it's the number of items, but could be the total weight if you use weights
+   * Set to Infinity to disable LRU/MRU behaviour of the cache.
    * @example
    *    { max: 500 }
    *    { max: "5k" } converted to 5 000
@@ -27,23 +28,15 @@ export interface Options<K, V, ResolverArgsType extends Array<any>> {
   ttl?: number | string;
 
   /**
-   * TTL resolution interval for batch cleanup.
-   * Items are removed within [ttl, ttl + ttlResolution] range.
-   * Constraints: 1ms <= ttlResolution <= ttl
+   * TTL accuracy interval for batch cleanup.
+   * Items are removed within [ttl, ttl + ttlAccuracy] range.
+   * Constraints: 500ms <= ttlAccuracy <= ttl
    * @example
-   *    { ttlResolution: 500 } checks every 500ms
-   *    { ttlResolution: '10s' }
+   *    { ttlAccuracy: 500 } checks every 500ms
+   *    { ttlAccuracy: '10s' }
    * @default max(ttl/10, 1s)
    */
-  ttlResolution?: number | string;
-
-  /**
-   * Force TTL check on every get() operation.
-   * This ensures that expired items are not returned even if they haven't been cleaned up yet.
-   * Note: Enabling this may impact performance due to additional checks on each access.
-   * @default false
-   */
-  forceTTL?: boolean;
+  ttlAccuracy?: number | string;
 
   /**
    * Default resolver function for missing keys.
@@ -74,7 +67,15 @@ export interface ResolverResultType<K, V> {
   onDeleted?: OnDeleted<K, V>;
 }
 
-export type OnDeleted<K, V> = (key: K, value: V) => void;
+export type OnDeleted<K, V> = (records: Metadata<K, V>[], reason: DeletedReason) => void;
+export type DeletedReason =
+  | 'expired'
+  | 'lru'
+  | 'removed'
+  | 'replaced'
+  | 'clearedAll'
+  | 'clearedTemp'
+  | 'clearedPerm';
 
 export interface LruLinkedNode<K, V> {
   /** Prev is least recently used, cache object if it LRU */
@@ -91,8 +92,8 @@ export interface Metadata<K, V> extends LruLinkedNode<K, V> {
   weight: number;
   /** is permanent item or temporary @default false */
   isPermanent: boolean;
-  /** Added time - related to local timer instead of timestamp for performance */
+  /** addedAt ≤ real_Added_time ≤ addedAt + ttlAccuracy */
   addedAt: number;
-  /** Last accessed time - related to local timer instead of timestamp for performance */
+  /** lastAccessedAt ≤ real_LastAccessed_time ≤ lastAccessedAt + ttlAccuracy */
   lastAccessedAt: number;
 }
