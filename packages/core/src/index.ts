@@ -227,6 +227,10 @@ export default class LRU_TTL<K = any, V = any, ResolverArgs extends any[] = any[
     return mru === this ? null : (mru as Metadata<K, V>);
   }
 
+  has(key: K): boolean {
+    return this.#map.has(key);
+  }
+
   #setupTTLInterval() {
     // Clear previous interval
     if (this.#ttlInterval != null) clearInterval(this.#ttlInterval);
