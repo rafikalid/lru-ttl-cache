@@ -124,6 +124,7 @@ export default class LRU_TTL<K = any, V = any, ResolverArgs extends any[] = any[
     this.#setupTTLInterval();
   }
 
+  /** Get evaluated TTL accuracy as number */
   get evalTTLAccuracy(): number {
     let ttlAccuracy = this.#ttlAccuracy;
     if (ttlAccuracy === 0) {
@@ -134,10 +135,12 @@ export default class LRU_TTL<K = any, V = any, ResolverArgs extends any[] = any[
     return ttlAccuracy;
   }
 
+  /** Get TTL accuracy as set by user as number or string */
   get ttlAccuracy(): number | string | undefined {
     return this.#ttlAccuracyRaw;
   }
 
+  /** Set the accuracy of the TTL checking interval */
   set ttlAccuracy(value: number | string | undefined) {
     let parsedValue = 0;
     if (value != null) {
@@ -151,15 +154,30 @@ export default class LRU_TTL<K = any, V = any, ResolverArgs extends any[] = any[
     this.#setupTTLInterval();
   }
 
-  get defaultresolver(): Resolver<K, V, ResolverArgs> | undefined {
+  /** Retrieve the default resolver function, which is utilized to resolve values that are not found in the cache when using `cache.resolve(key)`. */
+  get defaultResolver(): Resolver<K, V, ResolverArgs> | undefined {
     return this.#defaultResolver;
   }
 
+  /** Set the default resolver function, which is utilized to resolve values that are not found in the cache when using `cache.resolve(key)`. */
   set defaultResolver(resolver: Resolver<K, V, ResolverArgs> | undefined) {
     if (typeof resolver !== 'function' && resolver != null) {
       throw new Error(`defaultResolver must be a function or undefined.`);
     }
     this.#defaultResolver = resolver;
+  }
+
+  /** Retrieve the onDeleted callback function, which is invoked when items are removed from the cache due to expiration or other deletion events. */
+  get onDeleted(): OnDeleted<K, V> | undefined {
+    return this.#onDeleted;
+  }
+
+  /** Set the onDeleted callback function, which is invoked when items are removed from the cache due to expiration or other deletion events. */
+  set onDeleted(callback: OnDeleted<K, V> | undefined) {
+    if (typeof callback !== 'function' && callback != null) {
+      throw new Error(`onDeleted must be a function or undefined.`);
+    }
+    this.#onDeleted = callback;
   }
 
   #setupTTLInterval() {
