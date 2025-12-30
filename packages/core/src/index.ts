@@ -180,6 +180,16 @@ export default class LRU_TTL<K = any, V = any, ResolverArgs extends any[] = any[
     this.#onDeleted = callback;
   }
 
+  /** Get the number of items in the cache */
+  get size(): number {
+    return this.#map.size;
+  }
+
+  /** @deprecated Use `size` instead. */
+  get count(): number {
+    return this.#map.size;
+  }
+
   #setupTTLInterval() {
     // Clear previous interval
     if (this.#ttlInterval != null) clearInterval(this.#ttlInterval);
