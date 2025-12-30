@@ -65,8 +65,8 @@ export default class LRU_TTL<K = any, V = any, ResolverArgs extends any[] = any[
       const { max, ttl, ttlAccuracy, defaultResolver, onDeleted } = options;
 
       if (max != null) this.max = max;
-      if (ttl != null) this.ttl = ttl;
       if (ttlAccuracy != null) this.ttlAccuracy = ttlAccuracy;
+      if (ttl != null) this.ttl = ttl;
       if (defaultResolver != null) this.defaultResolver = defaultResolver;
       if (onDeleted != null) this.onDeleted = onDeleted;
     }
@@ -124,7 +124,7 @@ export default class LRU_TTL<K = any, V = any, ResolverArgs extends any[] = any[
     this.#setupTTLInterval();
   }
 
-  get evalTTLResolution(): number {
+  get evalTTLAccuracy(): number {
     let ttlResolution = this.#ttlResolution;
     if (ttlResolution === 0) {
       const ttl = this.#ttl;
@@ -134,12 +134,33 @@ export default class LRU_TTL<K = any, V = any, ResolverArgs extends any[] = any[
     return ttlResolution;
   }
 
+  get ttlAccuracy(): number | string | undefined {
+    return this.#ttlResolutionRaw;
+  }
+
+  set ttlAccuracy(value: number | string | undefined) {
+    let parsedValue = 0;
+    if (value != null) {
+      parsedValue = parseTimeExpression(value);
+      if (parsedValue < TIME_UNIT) {
+        throw new Error(`Invalid ttlAccuracy value: ${value}. Minimum is ${TIME_UNIT}ms`);
+      }
+    }
+    this.#ttlResolution = parsedValue;
+    this.#ttlResolutionRaw = value;
+    this.#setupTTLInterval();
+  }
+
   #setupTTLInterval() {
     // Clear previous interval
     if (this.#ttlInterval != null) clearInterval(this.#ttlInterval);
     if (this.#ttl === Infinity) return;
 
-    const ttlResolution = this.evalTTLResolution;
+    const ttlResolution = this.evalTTLAccuracy;
+    if (ttlResolution === Infinity)
+      throw new Error(
+        `Invalid ttlAccuracy value: cannot be Infinity when ttl is set (ttl= ${this.#ttl}).`,
+      );
 
     const intervalId = setInterval(() => {
       this.#ttlCleaner();
