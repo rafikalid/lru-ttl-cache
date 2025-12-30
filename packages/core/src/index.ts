@@ -45,12 +45,12 @@ export default class LRU_TTL<K = any, V = any, ResolverArgs extends any[] = any[
   /** Total entries weight */
   #weight: number = 0;
   /** Temporary entries counter */
-  #tempCount: number = 0;
+  #tempSize: number = 0;
   /** Temporary entries weight */
   #tempWeight: number = 0;
 
   /** Permanent entries counter */
-  #permCount: number = 0;
+  #permSize: number = 0;
   /** Permanent entries weight */
   #permWeight: number = 0;
 
@@ -190,6 +190,31 @@ export default class LRU_TTL<K = any, V = any, ResolverArgs extends any[] = any[
     return this.#map.size;
   }
 
+  /** Get the number of permanent items in the cache */
+  get permSize(): number {
+    return this.#permSize;
+  }
+
+  /** Get the number of temporary items in the cache */
+  get tempSize(): number {
+    return this.#tempSize;
+  }
+
+  /** Get the total weight of items in the cache */
+  get weight(): number {
+    return this.#weight;
+  }
+
+  /** Get the total weight of permanent items in the cache */
+  get permWeight(): number {
+    return this.#permWeight;
+  }
+
+  /** Get the total weight of temporary items in the cache */
+  get tempWeight(): number {
+    return this.#tempWeight;
+  }
+
   #setupTTLInterval() {
     // Clear previous interval
     if (this.#ttlInterval != null) clearInterval(this.#ttlInterval);
@@ -220,7 +245,7 @@ export default class LRU_TTL<K = any, V = any, ResolverArgs extends any[] = any[
     const map = this.#map;
     const expires = currentTick - this.#ttl;
     let temporaryItemsWeight = this.#tempWeight;
-    let temporaryItemsCount = this.#tempCount;
+    let temporaryItemsCount = this.#tempSize;
     let allItemsWeight = this.#weight;
     const deletedRecords: Metadata<K, V>[] = [];
     while (lru !== this && (lru as Metadata<K, V>).lastAccessedAt <= expires) {
@@ -240,7 +265,7 @@ export default class LRU_TTL<K = any, V = any, ResolverArgs extends any[] = any[
     this._next = lru;
     lru._prev = this;
     // Update stats
-    this.#tempCount = temporaryItemsCount;
+    this.#tempSize = temporaryItemsCount;
     this.#tempWeight = temporaryItemsWeight;
     this.#weight = allItemsWeight;
     // Call onDeleted callbacks
