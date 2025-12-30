@@ -227,8 +227,19 @@ export default class LRU_TTL<K = any, V = any, ResolverArgs extends any[] = any[
     return mru === this ? null : (mru as Metadata<K, V>);
   }
 
+  /** Check if a key exists in the cache */
   has(key: K): boolean {
     return this.#map.has(key);
+  }
+
+  /** Peek at a value in the cache without updating its recency or TTL */
+  peek(key: K): V | undefined {
+    return this.#map.get(key)?.value;
+  }
+
+  /** Peek at the metadata of a record in the cache without updating its recency or TTL */
+  peekMetadata(key: K): Metadata<K, V> | undefined {
+    return this.#map.get(key);
   }
 
   #setupTTLInterval() {
