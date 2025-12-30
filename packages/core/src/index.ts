@@ -2,12 +2,12 @@ import { LruLinkedNode, Metadata, OnDeleted, Options, Resolver } from './types';
 import { BytesValue, parseBytes } from './utils/bytes-parser';
 import { parseTimeExpression } from './utils/time-parser';
 
-const TTL_RESOLUTION_DEFAULT_FRAG = 10;
-const TTL_RESOLUTION_DEFAULT = 1000; // 1s
+const TTL_ACCURACY_DEFAULT_FRAG = 10;
+const TTL_ACCURACY_DEFAULT = 1000; // 1s
 /**
- * 15ms. Minimum timer resolution in Node.js and browsers.
+ * 15ms. Minimum timer accuracy in Node.js and browsers.
  * Using a lower value is pointless as the timer won't be more accurate.
- * This is used to clamp ttlResolution values.
+ * This is used to clamp ttlAccuracy values.
  */
 const TIME_UNIT = 15;
 
@@ -30,10 +30,10 @@ export default class LRU_TTL<K = any, V = any, ResolverArgs extends any[] = any[
   #ttl: number = Infinity;
   /** TTL as set by user */
   #ttlRaw: number | string = Infinity;
-  /** TTL resolution @default ttl/10 */
-  #ttlResolution: number = 0;
-  /** TTL resolution as set by user */
-  #ttlResolutionRaw?: number | string = undefined;
+  /** TTL accuracy @default ttl/10 */
+  #ttlAccuracy: number = 0;
+  /** TTL accuracy as set by user */
+  #ttlAccuracyRaw?: number | string = undefined;
   /** Force TTL check on every get() */
   #forceTTL: boolean = false;
 
@@ -125,17 +125,17 @@ export default class LRU_TTL<K = any, V = any, ResolverArgs extends any[] = any[
   }
 
   get evalTTLAccuracy(): number {
-    let ttlResolution = this.#ttlResolution;
-    if (ttlResolution === 0) {
+    let ttlAccuracy = this.#ttlAccuracy;
+    if (ttlAccuracy === 0) {
       const ttl = this.#ttl;
-      ttlResolution =
-        ttl === Infinity ? TTL_RESOLUTION_DEFAULT : Math.ceil(ttl / TTL_RESOLUTION_DEFAULT_FRAG);
+      ttlAccuracy =
+        ttl === Infinity ? TTL_ACCURACY_DEFAULT : Math.ceil(ttl / TTL_ACCURACY_DEFAULT_FRAG);
     }
-    return ttlResolution;
+    return ttlAccuracy;
   }
 
   get ttlAccuracy(): number | string | undefined {
-    return this.#ttlResolutionRaw;
+    return this.#ttlAccuracyRaw;
   }
 
   set ttlAccuracy(value: number | string | undefined) {
@@ -146,8 +146,8 @@ export default class LRU_TTL<K = any, V = any, ResolverArgs extends any[] = any[
         throw new Error(`Invalid ttlAccuracy value: ${value}. Minimum is ${TIME_UNIT}ms`);
       }
     }
-    this.#ttlResolution = parsedValue;
-    this.#ttlResolutionRaw = value;
+    this.#ttlAccuracy = parsedValue;
+    this.#ttlAccuracyRaw = value;
     this.#setupTTLInterval();
   }
 
@@ -156,15 +156,15 @@ export default class LRU_TTL<K = any, V = any, ResolverArgs extends any[] = any[
     if (this.#ttlInterval != null) clearInterval(this.#ttlInterval);
     if (this.#ttl === Infinity) return;
 
-    const ttlResolution = this.evalTTLAccuracy;
-    if (ttlResolution === Infinity)
+    const ttlAccuracy = this.evalTTLAccuracy;
+    if (ttlAccuracy === Infinity)
       throw new Error(
         `Invalid ttlAccuracy value: cannot be Infinity when ttl is set (ttl= ${this.#ttl}).`,
       );
 
     const intervalId = setInterval(() => {
       this.#ttlCleaner();
-    }, ttlResolution);
+    }, ttlAccuracy);
     /** Unref the interval to allow the program to exit if this is the only active timer */
     intervalId.unref?.();
     this.#ttlInterval = intervalId;
@@ -173,10 +173,10 @@ export default class LRU_TTL<K = any, V = any, ResolverArgs extends any[] = any[
   #ttlCleaner() {
     let lru: LruLinkedNode<K, V> = this._next;
     if (lru === this) return; // empty cache, we don't clear time interval for performance.
-    // Get resolution & set next tick interval
-    const ttlResolution = this.#ttlResolution;
+    // Get accuracy & set next tick interval
+    const ttlAccuracy = this.#ttlAccuracy;
     const currentTick = this.#currentTick;
-    this.#currentTick += ttlResolution;
+    this.#currentTick += ttlAccuracy;
     // Remove expired items
     const map = this.#map;
     const expires = currentTick - this.#ttl;
