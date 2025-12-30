@@ -151,6 +151,17 @@ export default class LRU_TTL<K = any, V = any, ResolverArgs extends any[] = any[
     this.#setupTTLInterval();
   }
 
+  get defaultresolver(): Resolver<K, V, ResolverArgs> | undefined {
+    return this.#defaultResolver;
+  }
+
+  set defaultResolver(resolver: Resolver<K, V, ResolverArgs> | undefined) {
+    if (typeof resolver !== 'function' && resolver != null) {
+      throw new Error(`defaultResolver must be a function or undefined.`);
+    }
+    this.#defaultResolver = resolver;
+  }
+
   #setupTTLInterval() {
     // Clear previous interval
     if (this.#ttlInterval != null) clearInterval(this.#ttlInterval);
