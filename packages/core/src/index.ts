@@ -215,6 +215,18 @@ export default class LRU_TTL<K = any, V = any, ResolverArgs extends any[] = any[
     return this.#tempWeight;
   }
 
+  /** Get the least recently used temporary record in the cache */
+  get lru(): Metadata<K, V> | null {
+    const lru = this._next;
+    return lru === this ? null : (lru as Metadata<K, V>);
+  }
+
+  /** Get the most recently used temporary record in the cache */
+  get mru(): Metadata<K, V> | null {
+    const mru = this._prev;
+    return mru === this ? null : (mru as Metadata<K, V>);
+  }
+
   #setupTTLInterval() {
     // Clear previous interval
     if (this.#ttlInterval != null) clearInterval(this.#ttlInterval);
