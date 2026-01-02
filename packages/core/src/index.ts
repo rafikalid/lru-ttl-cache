@@ -1,4 +1,4 @@
-import { LruLinkedNode, Metadata, OnDeleted, Options, Resolver } from './types';
+import { DeletedReason, LruLinkedNode, Metadata, OnDeleted, Options, Resolver } from './types';
 import { BytesValue, parseBytes } from './utils/bytes-parser';
 import { parseTimeExpression } from './utils/time-parser';
 
@@ -94,7 +94,7 @@ export default class LRU_TTL<K = any, V = any, ResolverArgs extends any[] = any[
     }
     this.#maxRaw = value;
     this.#max = parsedValue;
-    // this.#enforceMaxLimits(); //TODO: enforce max limits on set
+    this.#enforceMaxLimits();
   }
 
   get evalTTL(): number {
@@ -242,6 +242,112 @@ export default class LRU_TTL<K = any, V = any, ResolverArgs extends any[] = any[
     return this.#map.get(key);
   }
 
+  set(key: K, value: V, weight = 1, isPermanent = false): this {
+    const map = this.#map;
+    const now = this.#currentTick;
+    let entry = map.get(key);
+    // Flags to update stats later
+    let cacheWeight = this.#weight;
+    let tempSize = this.#tempSize;
+    let tempWeight = this.#tempWeight;
+    let permSize = this.#permSize;
+    let permWeight = this.#permWeight;
+
+    if (entry == null) {
+      entry = {
+        key,
+        value,
+        weight,
+        isPermanent,
+        lastAccessedAt: now,
+        addedAt: now,
+        _next: this,
+        _prev: this,
+      };
+      map.set(key, entry);
+      // New entry stats update
+      cacheWeight += weight;
+      if (isPermanent) {
+        ++permSize;
+        permWeight += weight;
+      } else {
+        ++tempSize;
+        tempWeight += weight;
+      }
+    } else {
+      const oldIsPermanent = entry.isPermanent;
+      const isPermanentUnchanged = oldIsPermanent === isPermanent;
+      // Remove from current position in LRU list
+      if (!oldIsPermanent) {
+        entry._prev._next = entry._next;
+        entry._next._prev = entry._prev;
+      }
+      // Update stats
+      const weightDelta = weight - entry.weight;
+      cacheWeight += weightDelta;
+      if (isPermanentUnchanged) {
+        if (isPermanent) {
+          permWeight += weightDelta;
+        } else {
+          tempWeight += weightDelta;
+        }
+      } else if (oldIsPermanent) {
+        --permSize;
+        permWeight -= entry.weight;
+        ++tempSize;
+        tempWeight += weight;
+      } else {
+        --tempSize;
+        tempWeight -= entry.weight;
+        ++permSize;
+        permWeight += weight;
+      }
+      // Add entry
+      if (entry.value === value && !isPermanentUnchanged) {
+        // Update existing entry
+        entry.value = value;
+        entry.weight = weight;
+        entry.lastAccessedAt = now;
+      } else {
+        this.#emitDelete([entry], 'replaced');
+        entry = {
+          key,
+          value,
+          weight,
+          isPermanent,
+          lastAccessedAt: now,
+          addedAt: now,
+          _next: this,
+          _prev: this,
+        };
+        map.set(key, entry);
+      }
+    }
+
+    // Update stats
+    this.#weight = cacheWeight;
+    this.#tempSize = tempSize;
+    this.#tempWeight = tempWeight;
+    this.#permSize = permSize;
+    this.#permWeight = permWeight;
+
+    // Append to MRU position if temporary
+    if (!isPermanent) {
+      entry._prev = this._prev;
+      entry._next = this;
+      this._prev._next = entry;
+      this._prev = entry;
+    }
+
+    // Enforce max limits
+    if (this.#tempWeight > this.#max) this.#enforceMaxLimits();
+    return this;
+  }
+
+  get(key: K): V | undefined {
+    throw new Error('Method not implemented.');
+  }
+
   #setupTTLInterval() {
     // Clear previous interval
     if (this.#ttlInterval != null) clearInterval(this.#ttlInterval);
@@ -297,6 +403,50 @@ export default class LRU_TTL<K = any, V = any, ResolverArgs extends any[] = any[
     this.#weight = allItemsWeight;
     // Call onDeleted callbacks
     this.#onDeleted?.(deletedRecords, 'expired');
+  }
+
+  #emitDelete(records: Metadata<K, V>[], reason: DeletedReason) {
+    setTimeout(() => {
+      this.#onDeleted?.(records, reason);
+    });
+  }
+
+  #enforceMaxLimits() {
+    const maxWeight = this.#max;
+    let temporaryItemsWeight = this.#tempWeight;
+    if (temporaryItemsWeight <= maxWeight) return;
+    let allItemsWeight = this.#weight;
+    let temporaryItemsCount = this.#tempSize;
+    const map = this.#map;
+    const deletedRecords: Metadata<K, V>[] = [];
+    while (temporaryItemsWeight > maxWeight) {
+      const lru = this._next;
+      if (lru === this) {
+        // no more items to delete
+        temporaryItemsCount = 0;
+        temporaryItemsWeight = 0;
+        allItemsWeight = 0;
+        break;
+      }
+      const { weight } = lru as Metadata<K, V>;
+      // Remove from map
+      map.delete((lru as Metadata<K, V>).key);
+      // Update stats
+      --temporaryItemsCount;
+      temporaryItemsWeight -= weight;
+      allItemsWeight -= weight;
+      // Collect deleted records for onDeleted callback
+      deletedRecords.push(lru as Metadata<K, V>);
+      // Next item
+      this._next = lru._next;
+      lru._next._prev = this;
+    }
+    // Update stats
+    this.#tempSize = temporaryItemsCount;
+    this.#tempWeight = temporaryItemsWeight;
+    this.#weight = allItemsWeight;
+    // Call onDeleted callbacks
+    this.#emitDelete(deletedRecords, 'evicted');
   }
 
   /** For(of) */

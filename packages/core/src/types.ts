@@ -70,7 +70,7 @@ export interface ResolverResultType<K, V> {
 export type OnDeleted<K, V> = (records: Metadata<K, V>[], reason: DeletedReason) => void;
 export type DeletedReason =
   | 'expired'
-  | 'lru'
+  | 'evicted'
   | 'removed'
   | 'replaced'
   | 'clearedAll'
