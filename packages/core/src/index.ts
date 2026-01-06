@@ -232,16 +232,6 @@ export default class LRU_TTL<K = any, V = any, ResolverArgs extends any[] = any[
     return this.#map.has(key);
   }
 
-  /** Peek at a value in the cache without updating its recency or TTL */
-  peek(key: K): V | undefined {
-    return this.#map.get(key)?.value;
-  }
-
-  /** Peek at the metadata of a record in the cache without updating its recency or TTL */
-  peekMetadata(key: K): Metadata<K, V> | undefined {
-    return this.#map.get(key);
-  }
-
   set(key: K, value: V, weight = 1, isPermanent = false): this {
     const map = this.#map;
     const now = this.#currentTick;
@@ -345,7 +335,38 @@ export default class LRU_TTL<K = any, V = any, ResolverArgs extends any[] = any[
   }
 
   get(key: K): V | undefined {
-    throw new Error('Method not implemented.');
+    return this.getMetadata(key)?.value;
+  }
+
+  getMetadata(key: K): Metadata<K, V> | undefined {
+    const entry = this.#map.get(key);
+    if (entry == null) return undefined;
+
+    const now = this.#currentTick;
+    // Update TTL
+    entry.lastAccessedAt = now;
+    // Move to MRU if temporary
+    if (!entry.isPermanent) {
+      // Remove from current position
+      entry._prev._next = entry._next;
+      entry._next._prev = entry._prev;
+      // Append to MRU position
+      entry._prev = this._prev;
+      entry._next = this;
+      this._prev._next = entry;
+      this._prev = entry;
+    }
+    return entry;
+  }
+
+  /** Peek at a value in the cache without updating its recency or TTL */
+  peek(key: K): V | undefined {
+    return this.#map.get(key)?.value;
+  }
+
+  /** Peek at the metadata of a record in the cache without updating its recency or TTL */
+  peekMetadata(key: K): Metadata<K, V> | undefined {
+    return this.#map.get(key);
   }
 
   #setupTTLInterval() {
