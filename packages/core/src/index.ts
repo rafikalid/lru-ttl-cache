@@ -369,6 +369,23 @@ export default class LRU_TTL<K = any, V = any, ResolverArgs extends any[] = any[
     return this.#map.get(key);
   }
 
+  clear(): this {
+    const deletedRecords = this.#map;
+    this.#map = new Map<K, Metadata<K, V>>();
+    // Reset linked list
+    this._next = this;
+    this._prev = this;
+    // Reset stats
+    this.#weight = 0;
+    this.#tempSize = 0;
+    this.#tempWeight = 0;
+    this.#permSize = 0;
+    this.#permWeight = 0;
+    // Call onDeleted callbacks
+    this.emit('clearedAll', deletedRecords);
+    return this;
+  }
+
   #setupTTLInterval() {
     // Clear previous interval
     if (this.#ttlInterval != null) clearInterval(this.#ttlInterval);
@@ -426,7 +443,12 @@ export default class LRU_TTL<K = any, V = any, ResolverArgs extends any[] = any[
     this.#onDeleted?.(deletedRecords, 'expired');
   }
 
-  #emitDelete(records: Metadata<K, V>[], reason: DeletedReason) {
+  emit(
+    reason: 'expired' | 'evicted' | 'removed' | 'replaced' | 'clearedTemp' | 'clearedPerm',
+    records: Metadata<K, V>[],
+  ): void;
+  emit(reason: 'clearedAll', deletedRecords: Map<K, Metadata<K, V>>): void;
+  emit(reason: string, records: unknown): void {
     setTimeout(() => {
       this.#onDeleted?.(records, reason);
     });
