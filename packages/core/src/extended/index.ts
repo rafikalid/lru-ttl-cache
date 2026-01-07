@@ -1,7 +1,8 @@
 import EventEmitter from 'node:events';
 import LRU_TTL, { moveToMRU } from '../core';
-import { ExtendedMetadata } from './types';
+import { CacheEventReason, ExtendedMetadata } from './types';
 import { LruLinkedNode } from '../core/types';
+import { off } from 'node:cluster';
 
 /**
  * Extended LRU TTL Cache
@@ -25,7 +26,7 @@ export default class Extended_LRU_TTL<K, V, ResolverArgs extends any[] = []> ext
   /** Permanent entries weight */
   #permWeight: number = 0;
 
-  #events: EventEmitter = new EventEmitter();
+  emitter: EventEmitter = new EventEmitter();
 
   /** Get the number of permanent items in the cache */
   get permSize(): number {
@@ -276,7 +277,37 @@ export default class Extended_LRU_TTL<K, V, ResolverArgs extends any[] = []> ext
   ): void;
   emit(reason: 'replaced', deletedRecord: ExtendedMetadata<K, V>): void;
   emit(reason: 'clearedAll', deletedRecords: Map<K, ExtendedMetadata<K, V>>): void;
-  emit(reason: string, records: unknown): void {
-    this.#events.emit(reason, records);
+  emit(reason: CacheEventReason, ...args: any[]): void {
+    this.emitter.emit(reason, ...args);
+  }
+
+  once(
+    reason: 'expired' | 'evicted' | 'removed' | 'clearedTemp' | 'clearedPerm',
+    listener: (records: ExtendedMetadata<K, V>[]) => void,
+  ): void;
+  once(reason: 'replaced', listener: (deletedRecord: ExtendedMetadata<K, V>) => void): void;
+  once(
+    reason: 'clearedAll',
+    listener: (deletedRecords: Map<K, ExtendedMetadata<K, V>>) => void,
+  ): void;
+  once(reason: CacheEventReason, listener: (records: any) => void): void {
+    this.emitter.once(reason, listener);
+  }
+
+  on(
+    reason: 'expired' | 'evicted' | 'removed' | 'clearedTemp' | 'clearedPerm',
+    listener: (records: ExtendedMetadata<K, V>[]) => void,
+  ): void;
+  on(reason: 'replaced', listener: (deletedRecord: ExtendedMetadata<K, V>) => void): void;
+  on(
+    reason: 'clearedAll',
+    listener: (deletedRecords: Map<K, ExtendedMetadata<K, V>>) => void,
+  ): void;
+  on(reason: CacheEventReason, listener: (records: any) => void): void {
+    this.emitter.on(reason, listener);
+  }
+
+  off(reason: CacheEventReason, listener: (records: any) => void): void {
+    this.emitter.off(reason, listener);
   }
 }
