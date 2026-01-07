@@ -1,6 +1,6 @@
 import EventEmitter from 'node:events';
 import LRU_TTL, { moveToMRU } from '../core';
-import { CacheEventReason, ExtendedMetadata } from './types';
+import { CacheEventReason, ExtendedMetadata, OnDeleted } from './types';
 import { LruLinkedNode } from '../core/types';
 import { off } from 'node:cluster';
 
@@ -26,6 +26,10 @@ export default class Extended_LRU_TTL<K, V, ResolverArgs extends any[] = []> ext
   /** Permanent entries weight */
   #permWeight: number = 0;
 
+  /** onDeleted map */
+  onDeletedMap: Map<ExtendedMetadata<K, V>, OnDeleted<K, V>> = new Map();
+
+  /** Event emitter for cache events */
   emitter: EventEmitter = new EventEmitter();
 
   /** Get the number of permanent items in the cache */
@@ -124,7 +128,10 @@ export default class Extended_LRU_TTL<K, V, ResolverArgs extends any[] = []> ext
         entry.weight = weight;
         entry.lastAccessedAt = now;
       } else {
+        // Emit replaced event for old entry
         this.emit('replaced', entry);
+        this.#emitDeletedRecord(entry, 'replaced');
+        // Create new entry
         entry = {
           key,
           value,
@@ -175,6 +182,27 @@ export default class Extended_LRU_TTL<K, V, ResolverArgs extends any[] = []> ext
     return entry;
   }
 
+  onDeleted(key: K): OnDeleted<K, V> | undefined;
+  onDeleted(key: K, onDeleted: OnDeleted<K, V> | null): this;
+  onDeleted(key: K, onDeleted?: OnDeleted<K, V> | null): this | OnDeleted<K, V> | undefined {
+    const entry = this._map.get(key);
+    if (entry == null) {
+      if (onDeleted === undefined) {
+        return undefined;
+      } else if (onDeleted !== null) throw new Error(`Key not found in cache: ${key}`);
+    } else if (onDeleted === undefined) {
+      return this.onDeletedMap.get(entry);
+    } else if (onDeleted === null) {
+      this.onDeletedMap.delete(entry);
+    } else {
+      if (typeof onDeleted !== 'function') {
+        throw new TypeError('onDeleted must be a function');
+      }
+      this.onDeletedMap.set(entry, onDeleted);
+    }
+    return this;
+  }
+
   clear(): this {
     const deletedRecords = this._map;
     super.clear();
@@ -186,6 +214,15 @@ export default class Extended_LRU_TTL<K, V, ResolverArgs extends any[] = []> ext
     this.#permWeight = 0;
     // Call onDeleted callbacks
     this.emit('clearedAll', deletedRecords);
+    // Clear onDeleted map
+    const onDeletedMap = this.onDeletedMap;
+    this.onDeletedMap = new Map();
+    // emit clearedAll event for each deleted record
+    setTimeout(() => {
+      onDeletedMap.forEach((onDeleted, record) => {
+        onDeleted(record, 'clearedAll');
+      });
+    }, 0);
     return this;
   }
 
@@ -229,6 +266,8 @@ export default class Extended_LRU_TTL<K, V, ResolverArgs extends any[] = []> ext
     this.#weight = allItemsWeight;
     // Call onDeleted callbacks
     this.emit('evicted', deletedRecords);
+    // emit evicted event for each deleted record
+    this.#emitDeletedRecords(deletedRecords, 'evicted');
   }
 
   /** @override */
@@ -268,6 +307,7 @@ export default class Extended_LRU_TTL<K, V, ResolverArgs extends any[] = []> ext
     this.#weight = allItemsWeight;
     // Call onDeleted callbacks
     this.emit('expired', deletedRecords);
+    this.#emitDeletedRecords(deletedRecords, 'expired');
   }
 
   /** Emit events related to cache operations */
@@ -309,5 +349,28 @@ export default class Extended_LRU_TTL<K, V, ResolverArgs extends any[] = []> ext
 
   off(reason: CacheEventReason, listener: (records: any) => void): void {
     this.emitter.off(reason, listener);
+  }
+
+  #emitDeletedRecords(records: ExtendedMetadata<K, V>[], reason: CacheEventReason): void {
+    const onDeletedMap = this.onDeletedMap;
+    setTimeout(() => {
+      records.forEach((record) => {
+        const onDeleted = onDeletedMap.get(record);
+        if (onDeleted) {
+          onDeleted(record, reason);
+          onDeletedMap.delete(record);
+        }
+      });
+    }, 0);
+  }
+  #emitDeletedRecord(entry: ExtendedMetadata<K, V>, reason: CacheEventReason): void {
+    const onDeleted = this.onDeletedMap.get(entry);
+    if (onDeleted) {
+      this.onDeletedMap.delete(entry);
+      // Call old onDeleted callback
+      setTimeout(() => {
+        onDeleted(entry, 'replaced');
+      }, 0);
+    }
   }
 }
