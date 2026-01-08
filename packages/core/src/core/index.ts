@@ -261,12 +261,55 @@ export default class LRU_TTL<
     return this._map.get(key);
   }
 
+  /** Clear all items from the cache */
   clear(): this {
     this._map = new Map<K, M>();
     // Reset linked list
     this._next = this;
     this._prev = this;
     return this;
+  }
+
+  /**
+   * Remove and return the least recently used record from the cache
+   */
+  popLRU(): M | undefined {
+    const lru = this._next;
+    if (lru === this) return undefined; // empty cache
+
+    // Remove from cache
+    this._removeRecord(lru as M);
+
+    return lru as M;
+  }
+
+  /**
+   * Remove and return the most recently used record from the cache
+   */
+  popMRU(): M | undefined {
+    const mru = this._prev;
+    if (mru === this) return undefined; // empty cache
+
+    // Remove from cache
+    this._removeRecord(mru as M);
+
+    return mru as M;
+  }
+
+  pop(key: K): M | undefined {
+    const entry = this._map.get(key);
+    if (entry == null) return undefined;
+    // Remove from cache
+    this._removeRecord(entry);
+    return entry;
+  }
+
+  delete(key: K): boolean {
+    const entry = this._map.get(key);
+    if (entry == null) return false;
+    // Remove from cache
+    this._removeRecord(entry);
+    return true;
   }
 
   #setupTTLInterval() {
@@ -286,6 +329,14 @@ export default class LRU_TTL<
     /** Unref the interval to allow the program to exit if this is the only active timer */
     intervalId.unref?.();
     this.#ttlInterval = intervalId;
+  }
+
+  protected _removeRecord(entry: M) {
+    // Remove from map
+    this._map.delete(entry.key);
+    // Remove from linked list
+    entry._prev._next = entry._next;
+    entry._next._prev = entry._prev;
   }
 
   protected _ttlCleaner() {

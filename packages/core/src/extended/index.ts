@@ -166,6 +166,10 @@ export default class Extended_LRU_TTL<K, V, ResolverArgs extends any[] = []> ext
     return this;
   }
 
+  setPermanent(key: K, value: V, weight?: number): this {
+    return this.set(key, value, weight, true);
+  }
+
   /** @override */
   getMetadata(key: K): ExtendedMetadata<K, V> | undefined {
     const entry = this._map.get(key);
@@ -224,6 +228,29 @@ export default class Extended_LRU_TTL<K, V, ResolverArgs extends any[] = []> ext
       });
     }, 0);
     return this;
+  }
+
+  /** @override */
+  protected _removeRecord(entry: ExtendedMetadata<K, V>) {
+    // Remove from map
+    this._map.delete(entry.key);
+    const { weight } = entry;
+    this.#weight -= weight;
+    if (entry.isPermanent) {
+      // Update permanent stats
+      --this.#permSize;
+      this.#permWeight -= weight;
+    } else {
+      // Update temporary stats
+      --this.#tempSize;
+      this.#tempWeight -= weight;
+      // Remove from linked list
+      entry._prev._next = entry._next;
+      entry._next._prev = entry._prev;
+    }
+    // Call onDeleted callbacks
+    this.emit('removed', [entry]);
+    this.#emitDeletedRecord(entry, 'removed');
   }
 
   /** @override */
