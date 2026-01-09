@@ -230,6 +230,52 @@ export default class Extended_LRU_TTL<K, V, ResolverArgs extends any[] = []> ext
     return this;
   }
 
+  /** Clear all permanent records from the cache */
+  clearPermanentRecords(): this {
+    const deletedRecords: ExtendedMetadata<K, V>[] = [];
+    const map = this._map;
+    map.forEach((entry) => {
+      if (entry.isPermanent) {
+        deletedRecords.push(entry);
+        map.delete(entry.key);
+      }
+    });
+    // Update stats
+    this.#weight = this.#tempWeight; // only temporary items remain
+    this.#permSize = 0;
+    this.#permWeight = 0;
+    // Call onDeleted callbacks
+    this.emit('clearedPerm', deletedRecords);
+    this.#emitDeletedRecords(deletedRecords, 'clearedPerm');
+    return this;
+  }
+
+  /** Clear all temporary records from the cache */
+  clearTemporaryRecords(): this {
+    const deletedRecords: ExtendedMetadata<K, V>[] = [];
+    let lru: LruLinkedNode<K, V> = this._next;
+    const map = this._map;
+    while (lru !== this) {
+      const entry = lru as ExtendedMetadata<K, V>;
+      if (!entry.isPermanent) {
+        deletedRecords.push(entry);
+        map.delete(entry.key);
+      }
+      lru = lru._next;
+    }
+    // Reset linked list pointers
+    this._next = this;
+    this._prev = this;
+    // Update stats
+    this.#weight = this.#permWeight; // only permanent items remain
+    this.#tempSize = 0;
+    this.#tempWeight = 0;
+    // Call onDeleted callbacks
+    this.emit('clearedTemp', deletedRecords);
+    this.#emitDeletedRecords(deletedRecords, 'clearedTemp');
+    return this;
+  }
+
   /** @override */
   protected _removeRecord(entry: ExtendedMetadata<K, V>) {
     // Remove from map
