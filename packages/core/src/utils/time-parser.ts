@@ -1,23 +1,25 @@
+const TIME_REGEX = /(\d+(?:\.\d+)?)\s*([a-z]+)/gi;
+
 /**
  * Parses time expressions and returns milliseconds
  * Supports: ms, s, m, h, d
  * Examples: "5s", "2d 5h 4m 5s 23ms"
  */
 export function parseTimeExpression(expression: string | number): number {
-  if(typeof expression === 'number') return expression;
-  if(typeof expression !== 'string') {
+  if (typeof expression === 'number') return expression;
+  if (typeof expression !== 'string') {
     throw new Error(`Invalid time expression type: ${typeof expression}`);
   }
 
   let totalMs = 0;
-  const regex = /(\d+(?:\.\d+)?)\s*([a-z]+)/gi;
   let match;
 
-  while ((match = regex.exec(expression)) !== null) {
+  TIME_REGEX.lastIndex = 0; // Reset regex state
+  while ((match = TIME_REGEX.exec(expression)) !== null) {
     const value = +match[1];
     const unit = match[2].toLowerCase();
 
-    switch(unit) {
+    switch (unit) {
       case 'ms':
         totalMs += value;
         break;
