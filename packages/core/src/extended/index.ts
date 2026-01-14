@@ -1,8 +1,7 @@
 import EventEmitter from 'node:events';
 import LRU_TTL, { moveToMRU } from '../core';
-import { CacheEventReason, ExtendedMetadata, OnDeleted } from './types';
+import { CacheEventReason, ExtendedMetadata, ExtendedResolverResultType, OnDeleted } from './types';
 import { LruLinkedNode } from '../core/types';
-import { off } from 'node:cluster';
 
 /**
  * Extended LRU TTL Cache
@@ -61,7 +60,7 @@ export default class Extended_LRU_TTL<K, V, ResolverArgs extends any[] = []> ext
    * @override
    * Set a value in the cache with weight and permanence
    */
-  set(key: K, value: V, weight = 1, isPermanent = false): this {
+  set(key: K, value: V, weight = 1, isPermanent = false): ExtendedMetadata<K, V> {
     const map = this._map as Map<K, ExtendedMetadata<K, V>>;
     const now = this._currentTick;
     let entry = map.get(key);
@@ -163,10 +162,10 @@ export default class Extended_LRU_TTL<K, V, ResolverArgs extends any[] = []> ext
 
     // Enforce max limits
     if (this.#tempWeight > this._max) this._enforceMaxLimits();
-    return this;
+    return entry;
   }
 
-  setPermanent(key: K, value: V, weight?: number): this {
+  setPermanent(key: K, value: V, weight?: number): ExtendedMetadata<K, V> {
     return this.set(key, value, weight, true);
   }
 
@@ -381,6 +380,18 @@ export default class Extended_LRU_TTL<K, V, ResolverArgs extends any[] = []> ext
     // Call onDeleted callbacks
     this.emit('expired', deletedRecords);
     this.#emitDeletedRecords(deletedRecords, 'expired');
+  }
+
+  /** Override */
+  protected _setResolvedValue(
+    key: K,
+    { value, weight, isPermanent, onDeleted }: ExtendedResolverResultType<K, V>,
+  ): ExtendedMetadata<K, V> {
+    const m = this.set(key, value, weight, isPermanent);
+    if (onDeleted) {
+      this.onDeleted(key, onDeleted);
+    }
+    return m;
   }
 
   /** Emit events related to cache operations */

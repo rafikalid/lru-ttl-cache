@@ -1,6 +1,12 @@
+import LRU_TTL from '.';
 import { BytesValue } from '../utils/bytes-parser';
 
-export interface Options<K, V, ResolverArgsType extends any[]> {
+export interface Options<
+  K,
+  V,
+  ResolverArgsType extends any[],
+  M extends Metadata<K, V> = Metadata<K, V>,
+> {
   /**
    * Set the maximum allowed size of the cache.
    * By default, it's the number of items, but could be the total weight if you use weights
@@ -44,14 +50,19 @@ export interface Options<K, V, ResolverArgsType extends any[]> {
    * It should return the value to be stored in the cache for the missing key or a Promise.
    */
   defaultResolver?: Resolver<K, V, ResolverArgsType>;
+
+  /** Initial entries to populate the cache with. */
+  entries?: Iterable<[K, V]> | Array<[K, V]> | Map<K, V> | LRU_TTL<K, V, ResolverArgsType, M>;
 }
 
 export type Resolver<K, V, ArgsType extends Array<any>> = (
   key: K,
   ...args: ArgsType
-) => V extends Promise<infer U>
-  ? ResolverResult<K, U> | Promise<ResolverResult<K, U>>
-  : ResolverResult<K, V>;
+) =>
+  | null
+  | (V extends Promise<infer U>
+      ? ResolverResult<K, U> | Promise<ResolverResult<K, U>>
+      : ResolverResult<K, V>);
 export type ResolverResult<K, V> = ResolverResultType<K, V> | null | undefined;
 
 export interface ResolverResultType<K, V> {

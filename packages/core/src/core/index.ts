@@ -1,4 +1,4 @@
-import { LruLinkedNode, Metadata, Options, Resolver } from './types';
+import { LruLinkedNode, Metadata, Options, Resolver, ResolverResultType } from './types';
 import { BytesValue, parseBytes } from '../utils/bytes-parser';
 import { parseTimeExpression } from '../utils/time-parser';
 
@@ -54,7 +54,7 @@ export default class LRU_TTL<
   /** Current TTL tick: use to clean up expired items (performance optimization) */
   protected _currentTick: number = 0;
 
-  constructor(options?: Options<K, V, ResolverArgs>) {
+  constructor(options?: Options<K, V, ResolverArgs, M>) {
     if (options != null) {
       const { max, ttl, ttlAccuracy, defaultResolver } = options;
 
@@ -62,6 +62,13 @@ export default class LRU_TTL<
       if (ttlAccuracy != null) this.ttlAccuracy = ttlAccuracy;
       if (ttl != null) this.ttl = ttl;
       if (defaultResolver != null) this.defaultResolver = defaultResolver;
+      if (options.entries == null) {
+        // Do nothing
+      } else if (options.entries instanceof LRU_TTL) {
+        this._fromLRU_TTL(options.entries);
+      } else {
+        this.#fromEntries(options.entries);
+      }
     }
   }
 
@@ -187,7 +194,7 @@ export default class LRU_TTL<
     return this._map.has(key);
   }
 
-  set(key: K, value: V): this {
+  set(key: K, value: V): M {
     const map = this._map;
     const now = this._currentTick;
     let entry = map.get(key);
@@ -232,6 +239,25 @@ export default class LRU_TTL<
 
     // Enforce max limits
     if (this._map.size > this._max) this._enforceMaxLimits();
+    return entry;
+  }
+
+  setFrom(src: LRU_TTL<K, V, ResolverArgs, M> | Map<K, V> | IterableIterator<[K, V]> | [K, V][]) {
+    if (src instanceof LRU_TTL) {
+      for (const { key, value } of src) {
+        this.set(key, value);
+      }
+    } else if (src instanceof Map) {
+      for (const [key, value] of src) {
+        this.set(key, value);
+      }
+    } else if (Symbol.iterator in Object(src)) {
+      for (const [key, value] of src as IterableIterator<[K, V]> | [K, V][]) {
+        this.set(key, value);
+      }
+    } else {
+      throw new Error('Invalid source type for LRU_TTL.from()');
+    }
     return this;
   }
 
@@ -312,6 +338,59 @@ export default class LRU_TTL<
     return true;
   }
 
+  resolve(key: K, resolver?: Resolver<K, V, ResolverArgs>, ...args: ResolverArgs): V | undefined {
+    return this.resolveMetadata(key, resolver, ...args)?.value;
+  }
+
+  resolveMetadata(
+    key: K,
+    resolver?: Resolver<K, V, ResolverArgs>,
+    ...args: ResolverArgs
+  ): M | undefined {
+    const v = this.getMetadata(key);
+    if (v != null) return v;
+
+    const resolverFx = resolver ?? this.#defaultResolver;
+    if (typeof resolverFx !== 'function')
+      throw new Error(`No resolver function provided for key: ${key}`);
+
+    const value = resolverFx(key, ...args);
+    if (value == null) {
+      this.delete(key);
+      return undefined;
+    }
+
+    if (value instanceof Promise) {
+      // When resolved, update the entry
+      const pendingValue: Promise<V> = value
+        .then((resolvedValue) => {
+          const isPendingValueUnchanged = this._map.get(key)?.value === pendingValue;
+          if (isPendingValueUnchanged) {
+            if (resolvedValue == null) {
+              this.delete(key);
+            } else {
+              this._setResolvedValue(key, resolvedValue as ResolverResultType<K, V>);
+            }
+          }
+          return resolvedValue?.value as V;
+        })
+        .catch((err) => {
+          this.delete(key);
+          throw err;
+        });
+
+      const pendingEntry = this.set(key, pendingValue as V);
+      return pendingEntry;
+    } else {
+      // Sync resolver
+      return this._setResolvedValue(key, value as ResolverResultType<K, V>);
+    }
+  }
+
+  protected _setResolvedValue(key: K, result: ResolverResultType<K, V>): M {
+    return this.set(key, result.value);
+  }
+
   #setupTTLInterval() {
     // Clear previous interval
     if (this.#ttlInterval != null) clearInterval(this.#ttlInterval);
@@ -379,6 +458,15 @@ export default class LRU_TTL<
     lru._prev = this;
   }
 
+  protected _getOptions(): Omit<Options<K, V, ResolverArgs>, 'entries'> {
+    return {
+      max: this.#maxRaw,
+      ttl: this.#ttlRaw,
+      ttlAccuracy: this.#ttlAccuracyRaw,
+      defaultResolver: this.#defaultResolver,
+    };
+  }
+
   /** For(of) */
   *[Symbol.iterator](): IterableIterator<M> {
     const it = this._map.values();
@@ -420,6 +508,69 @@ export default class LRU_TTL<
   //     --promiseCount;
   //   }
   // }
+
+  /** Construct empty cache from entries */
+  #fromEntries(entries: Map<K, V> | Iterable<[K, V]> | Array<[K, V]>) {
+    const map = this._map;
+    const now = this._currentTick;
+    let prev: LruLinkedNode<K, V> = this;
+    if (Array.isArray(entries)) {
+      for (let i = 0, len = entries.length; i < len; ++i) {
+        const [key, value] = entries[i];
+        const dupEntry = map.get(key);
+        if (dupEntry == null) {
+          const entry = {
+            key,
+            value,
+            lastAccessedAt: now,
+            addedAt: now,
+            _next: this,
+            _prev: prev,
+          } as unknown as M;
+          map.set(key, entry);
+          prev._next = entry;
+          prev = entry;
+        } else {
+          dupEntry.value = value;
+        }
+      }
+    } else {
+      for (const [key, value] of entries) {
+        const dupEntry = map.get(key);
+        if (dupEntry == null) {
+          const entry = {
+            key,
+            value,
+            lastAccessedAt: now,
+            addedAt: now,
+            _next: this,
+            _prev: prev,
+          } as unknown as M;
+          map.set(key, entry);
+          prev._next = entry;
+          prev = entry;
+        } else {
+          dupEntry.value = value;
+        }
+      }
+    }
+  }
+
+  /** Construct empty cache from LRU_TTL entries */
+  protected _fromLRU_TTL(entries: LRU_TTL<K, V, ResolverArgs, M>) {
+    for (const { key, value } of entries) {
+      this.set(key, value);
+    }
+  }
+
+  /** Create a new LRU_TTL instance from various sources */
+  static from<K, V, ResolverArgs extends any[], M extends Metadata<K, V>>(
+    src: LRU_TTL<K, V, ResolverArgs, M> | Map<K, V> | Iterable<[K, V]> | Array<[K, V]>,
+    options?: Options<K, V, ResolverArgs>,
+  ): LRU_TTL<K, V, ResolverArgs, M> {
+    options = { ...options, entries: src };
+    return new LRU_TTL<K, V, ResolverArgs, M>(options);
+  }
 }
 
 export function moveToMRU<K, V, M extends Metadata<K, V>>(
