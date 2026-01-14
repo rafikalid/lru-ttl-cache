@@ -586,36 +586,36 @@ export default class LRU_TTL<
     return result;
   }
 
-  //TODO: async iterator
-  // async *[Symbol.asyncIterator](): AsyncIterableIterator<Metadata<K, Awaited<V>>> {
-  //   const it = this._map.values();
-  //   let v = it.next();
-  //   const promises: Metadata<K, V>[] = [];
-  //   let promiseCount = 0;
-  //   let resolveValue: (value: Metadata<K, Awaited<V>>) => void;
-  //   let rejectValue: (reason?: any) => void;
+  async *[Symbol.asyncIterator](): AsyncIterableIterator<M> {
+    // Serve resolved entries immediately, and collect pending promises
+    const it = this._map.values();
+    let v = it.next();
+    let pendingPromises: Promise<M>[] = [];
+    const mapPendingPromises = new Map<K, Promise<M>>();
+    while (!v.done) {
+      const entry = v.value;
+      if (entry.value instanceof Promise) {
+        const pendingPromise = entry.value.then(
+          (resolvedValue: V) => ({ ...entry, value: resolvedValue } as M),
+        );
+        pendingPromises.push(pendingPromise);
+        mapPendingPromises.set(entry.key, pendingPromise);
+      } else {
+        yield entry;
+      }
+      v = it.next();
+    }
 
-  //   // Function to process settled promises
-  //   while (!v.done) {
-  //     const entry = v.value;
-  //     const value = entry.value;
-  //     if(value instanceof Promise) {
-  //       promises.push(entry);
-  //       ++promiseCount;
-  //     }
-  //     else yield {...entry, value : value as Awaited<V>};
-  //     v = it.next();
-  //   }
-
-  //   // Resolve promises as soon as settled
-  //   while(promiseCount > 0) {
-  //     const {promise, resolve, reject} = Promise.withResolvers<Metadata<K, Awaited<V>>>();
-  //     resolveValue = resolve;
-  //     rejectValue = reject;
-  //     yield await promise;
-  //     --promiseCount;
-  //   }
-  // }
+    // Await and yield pending promises
+    while (pendingPromises.length > 0) {
+      const settledEntry = await Promise.race(pendingPromises);
+      yield settledEntry;
+      // Remove the settled promise from the array
+      const settledPromise = mapPendingPromises.get(settledEntry.key);
+      pendingPromises = pendingPromises.filter((p) => p !== settledPromise);
+      mapPendingPromises.delete(settledEntry.key);
+    }
+  }
 
   /** Construct empty cache from entries */
   #fromEntries(entries: Map<K, V> | Iterable<[K, V]> | Array<[K, V]>) {
