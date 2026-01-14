@@ -453,7 +453,7 @@ export default class Extended_LRU_TTL<K, V, ResolverArgs extends any[] = []> ext
       this.onDeletedMap.delete(entry);
       // Call old onDeleted callback
       setTimeout(() => {
-        onDeleted(entry, 'replaced');
+        onDeleted(entry, reason);
       }, 0);
     }
   }
