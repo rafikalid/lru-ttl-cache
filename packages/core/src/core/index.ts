@@ -523,6 +523,69 @@ export default class LRU_TTL<
     }
   }
 
+  *entries(): IterableIterator<[K, V]> {
+    const it = this._map.values();
+    let v = it.next();
+    while (!v.done) {
+      const entry = v.value;
+      yield [entry.key, entry.value];
+      v = it.next();
+    }
+  }
+
+  *entriesMetadata(): IterableIterator<M> {
+    const it = this._map.values();
+    let v = it.next();
+    while (!v.done) {
+      const entry = v.value;
+      yield entry;
+      v = it.next();
+    }
+  }
+
+  keys(): IterableIterator<K> {
+    return this._map.keys();
+  }
+
+  *values(): IterableIterator<V> {
+    const it = this._map.values();
+    let v = it.next();
+    while (!v.done) {
+      const entry = v.value;
+      yield entry.value;
+      v = it.next();
+    }
+  }
+
+  forEach(callback: (value: V, key: K, cache: this, metadata: M) => void, thisArg?: any): void {
+    const it = this._map.values();
+    let v = it.next();
+    while (!v.done) {
+      const entry = v.value;
+      callback.call(thisArg, entry.value, entry.key, this, entry);
+      v = it.next();
+    }
+  }
+
+  groupBy<T>(
+    grouper: (value: V, key: K, cache: this, metadata: M) => T,
+    thisArg?: any,
+  ): Map<T, Array<{ key: K; value: V; metadata: M }>> {
+    const result = new Map<T, Array<{ key: K; value: V; metadata: M }>>();
+    const it = this._map.values();
+    let v = it.next();
+    while (!v.done) {
+      const entry = v.value;
+      const groupKey = grouper.call(thisArg, entry.value, entry.key, this, entry);
+      if (!result.has(groupKey)) {
+        result.set(groupKey, []);
+      }
+      result.get(groupKey)!.push({ key: entry.key, value: entry.value, metadata: entry });
+      v = it.next();
+    }
+    return result;
+  }
+
   //TODO: async iterator
   // async *[Symbol.asyncIterator](): AsyncIterableIterator<Metadata<K, Awaited<V>>> {
   //   const it = this._map.values();
