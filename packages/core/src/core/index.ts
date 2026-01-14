@@ -178,15 +178,25 @@ export default class LRU_TTL<
   }
 
   /** Get the least recently used temporary record in the cache */
-  get lru(): M | null {
+  get lru(): V | undefined {
     const lru = this._next;
-    return lru === this ? null : (lru as M);
+    return lru === this ? undefined : (lru as M).value;
+  }
+
+  get lruMetadata(): M | undefined {
+    const lru = this._next;
+    return lru === this ? undefined : (lru as M);
+  }
+
+  get mruMetadata(): M | undefined {
+    const mru = this._prev;
+    return mru === this ? undefined : (mru as M);
   }
 
   /** Get the most recently used temporary record in the cache */
-  get mru(): M | null {
+  get mru(): V | undefined {
     const mru = this._prev;
-    return mru === this ? null : (mru as M);
+    return mru === this ? undefined : (mru as M).value;
   }
 
   /** Check if a key exists in the cache */
@@ -299,7 +309,16 @@ export default class LRU_TTL<
   /**
    * Remove and return the least recently used record from the cache
    */
-  popLRU(): M | undefined {
+  popLRU(): V | undefined {
+    const lru = this._next;
+    if (lru === this) return undefined; // empty cache
+
+    // Remove from cache
+    this._removeRecord(lru as M);
+
+    return (lru as M).value;
+  }
+  popLRUMetadata(): M | undefined {
     const lru = this._next;
     if (lru === this) return undefined; // empty cache
 
@@ -312,7 +331,17 @@ export default class LRU_TTL<
   /**
    * Remove and return the most recently used record from the cache
    */
-  popMRU(): M | undefined {
+  popMRU(): V | undefined {
+    const mru = this._prev;
+    if (mru === this) return undefined; // empty cache
+
+    // Remove from cache
+    this._removeRecord(mru as M);
+
+    return (mru as M).value;
+  }
+
+  popMRUMetadata(): M | undefined {
     const mru = this._prev;
     if (mru === this) return undefined; // empty cache
 
@@ -322,7 +351,15 @@ export default class LRU_TTL<
     return mru as M;
   }
 
-  pop(key: K): M | undefined {
+  pop(key: K): V | undefined {
+    const entry = this._map.get(key);
+    if (entry == null) return undefined;
+    // Remove from cache
+    this._removeRecord(entry);
+    return entry.value;
+  }
+
+  popMetadata(key: K): M | undefined {
     const entry = this._map.get(key);
     if (entry == null) return undefined;
     // Remove from cache
@@ -339,6 +376,14 @@ export default class LRU_TTL<
   }
 
   resolve(key: K, resolver?: Resolver<K, V, ResolverArgs>, ...args: ResolverArgs): V | undefined {
+    return this.resolveMetadata(key, resolver, ...args)?.value;
+  }
+
+  getOrInsert(
+    key: K,
+    resolver?: Resolver<K, V, ResolverArgs>,
+    ...args: ResolverArgs
+  ): V | undefined {
     return this.resolveMetadata(key, resolver, ...args)?.value;
   }
 
