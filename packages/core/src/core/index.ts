@@ -461,6 +461,9 @@ export default class LRU_TTL<
     // Remove from linked list
     entry._prev._next = entry._next;
     entry._next._prev = entry._prev;
+    // Break links to help GC
+    entry._next = entry;
+    entry._prev = entry;
   }
 
   protected _ttlCleaner() {
@@ -476,6 +479,9 @@ export default class LRU_TTL<
     while (lru !== this && (lru as M).lastAccessedAt <= expires) {
       // Remove from map
       map.delete((lru as M).key);
+      // Break links to help GC
+      lru._next = lru;
+      lru._prev = lru;
       // Next item
       lru = lru._next;
     }
@@ -494,6 +500,9 @@ export default class LRU_TTL<
       // "lru===this" should not happen as size > maxSize
       // Remove from map
       map.delete((lru as M).key);
+      // Break links to help GC
+      lru._next = lru;
+      lru._prev = lru;
       // Next item
       lru = lru._next;
       --size;
