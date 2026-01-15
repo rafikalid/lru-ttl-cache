@@ -226,7 +226,6 @@ export default class LRU_TTL<
       // Add entry
       if (entry.value === value) {
         // Update existing entry
-        entry.value = value;
         entry.lastAccessedAt = now;
       } else {
         entry = {
@@ -261,7 +260,7 @@ export default class LRU_TTL<
       for (const [key, value] of src) {
         this.set(key, value);
       }
-    } else if (Symbol.iterator in Object(src)) {
+    } else if (typeof src[Symbol.iterator] === 'function') {
       for (const [key, value] of src as IterableIterator<[K, V]> | [K, V][]) {
         this.set(key, value);
       }
@@ -401,7 +400,6 @@ export default class LRU_TTL<
 
     const value = resolverFx(key, ...args);
     if (value == null) {
-      this.delete(key);
       return undefined;
     }
 
@@ -595,44 +593,23 @@ export default class LRU_TTL<
     const map = this._map;
     const now = this._currentTick;
     let prev: LruLinkedNode<K, V> = this;
-    if (Array.isArray(entries)) {
-      for (let i = 0, len = entries.length; i < len; ++i) {
-        const [key, value] = entries[i];
-        const dupEntry = map.get(key);
-        if (dupEntry == null) {
-          const entry = {
-            key,
-            value,
-            lastAccessedAt: now,
-            addedAt: now,
-            _next: this,
-            _prev: prev,
-          } as unknown as M;
-          map.set(key, entry);
-          prev._next = entry;
-          prev = entry;
-        } else {
-          dupEntry.value = value;
-        }
-      }
-    } else {
-      for (const [key, value] of entries) {
-        const dupEntry = map.get(key);
-        if (dupEntry == null) {
-          const entry = {
-            key,
-            value,
-            lastAccessedAt: now,
-            addedAt: now,
-            _next: this,
-            _prev: prev,
-          } as unknown as M;
-          map.set(key, entry);
-          prev._next = entry;
-          prev = entry;
-        } else {
-          dupEntry.value = value;
-        }
+
+    for (const [key, value] of entries) {
+      const dupEntry = map.get(key);
+      if (dupEntry == null) {
+        const entry = {
+          key,
+          value,
+          lastAccessedAt: now,
+          addedAt: now,
+          _next: this,
+          _prev: prev,
+        } as unknown as M;
+        map.set(key, entry);
+        prev._next = entry;
+        prev = entry;
+      } else {
+        dupEntry.value = value;
       }
     }
   }

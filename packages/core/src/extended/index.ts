@@ -123,7 +123,6 @@ export default class Extended_LRU_TTL<K, V, ResolverArgs extends any[] = []> ext
       // Add entry
       if (entry.value === value && !isPermanentUnchanged) {
         // Update existing entry
-        entry.value = value;
         entry.weight = weight;
         entry.lastAccessedAt = now;
       } else {
