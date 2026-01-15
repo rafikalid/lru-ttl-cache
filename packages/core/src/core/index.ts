@@ -478,10 +478,11 @@ export default class LRU_TTL<
       // Remove from map
       map.delete((lru as M).key);
       // Break links to help GC
+      const nextNode = lru._next;
       lru._next = lru;
       lru._prev = lru;
       // Next item
-      lru = lru._next;
+      lru = nextNode;
     }
     // detached expired nodes
     this._next = lru;
@@ -499,10 +500,11 @@ export default class LRU_TTL<
       // Remove from map
       map.delete((lru as M).key);
       // Break links to help GC
+      const nextNode = lru._next;
       lru._next = lru;
       lru._prev = lru;
       // Next item
-      lru = lru._next;
+      lru = nextNode;
       --size;
     }
     // detached evicted nodes

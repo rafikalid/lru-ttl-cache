@@ -61,6 +61,9 @@ export default class Extended_LRU_TTL<K, V, ResolverArgs extends any[] = []> ext
    * Set a value in the cache with weight and permanence
    */
   set(key: K, value: V, weight = 1, isPermanent = false): ExtendedMetadata<K, V> {
+    if (weight <= 0) {
+      throw new Error(`Invalid weight: ${weight}. Weight must be a positive number.`);
+    }
     const map = this._map as Map<K, ExtendedMetadata<K, V>>;
     const now = this._currentTick;
     let entry = map.get(key);
@@ -260,10 +263,11 @@ export default class Extended_LRU_TTL<K, V, ResolverArgs extends any[] = []> ext
         map.delete(entry.key);
       }
       // Break links to help GC
+      const nextNode = entry._next;
       entry._next = entry;
       entry._prev = entry;
       // Next item
-      lru = entry._next;
+      lru = nextNode;
     }
     // Reset linked list pointers
     this._next = this;
@@ -330,10 +334,11 @@ export default class Extended_LRU_TTL<K, V, ResolverArgs extends any[] = []> ext
       // Collect deleted records for onDeleted callback
       deletedRecords.push(lru as ExtendedMetadata<K, V>);
       // Break links to help GC
+      const nextNode = lru._next;
       lru._next = lru;
       lru._prev = lru;
       // Next item
-      lru = lru._next;
+      lru = nextNode;
     }
     // detached evicted nodes
     this._next = lru;
@@ -374,10 +379,11 @@ export default class Extended_LRU_TTL<K, V, ResolverArgs extends any[] = []> ext
       // Collect deleted records for onDeleted callback
       deletedRecords.push(lru as ExtendedMetadata<K, V>);
       // Break links to help GC
+      const nextNode = lru._next;
       lru._next = lru;
       lru._prev = lru;
       // Next item
-      lru = lru._next;
+      lru = nextNode;
     }
     // detached expired nodes
     this._next = lru;
