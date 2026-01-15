@@ -221,11 +221,11 @@ export default class Extended_LRU_TTL<K, V, ResolverArgs extends any[] = []> ext
     const onDeletedMap = this.onDeletedMap;
     this.onDeletedMap = new Map();
     // emit clearedAll event for each deleted record
-    setTimeout(() => {
+    queueMicrotask(() => {
       onDeletedMap.forEach((onDeleted, record) => {
         onDeleted(record, 'clearedAll');
       });
-    }, 0);
+    });
     return this;
   }
 
@@ -260,7 +260,11 @@ export default class Extended_LRU_TTL<K, V, ResolverArgs extends any[] = []> ext
         deletedRecords.push(entry);
         map.delete(entry.key);
       }
-      lru = lru._next;
+      // Break links to help GC
+      entry._next = entry;
+      entry._prev = entry;
+      // Next item
+      lru = entry._next;
     }
     // Reset linked list pointers
     this._next = this;
@@ -326,6 +330,9 @@ export default class Extended_LRU_TTL<K, V, ResolverArgs extends any[] = []> ext
       allItemsWeight -= weight;
       // Collect deleted records for onDeleted callback
       deletedRecords.push(lru as ExtendedMetadata<K, V>);
+      // Break links to help GC
+      lru._next = lru;
+      lru._prev = lru;
       // Next item
       lru = lru._next;
     }
@@ -367,6 +374,9 @@ export default class Extended_LRU_TTL<K, V, ResolverArgs extends any[] = []> ext
       allItemsWeight -= weight;
       // Collect deleted records for onDeleted callback
       deletedRecords.push(lru as ExtendedMetadata<K, V>);
+      // Break links to help GC
+      lru._next = lru;
+      lru._prev = lru;
       // Next item
       lru = lru._next;
     }
@@ -437,7 +447,7 @@ export default class Extended_LRU_TTL<K, V, ResolverArgs extends any[] = []> ext
 
   #emitDeletedRecords(records: ExtendedMetadata<K, V>[], reason: CacheEventReason): void {
     const onDeletedMap = this.onDeletedMap;
-    setTimeout(() => {
+    queueMicrotask(() => {
       records.forEach((record) => {
         const onDeleted = onDeletedMap.get(record);
         if (onDeleted) {
@@ -445,16 +455,16 @@ export default class Extended_LRU_TTL<K, V, ResolverArgs extends any[] = []> ext
           onDeletedMap.delete(record);
         }
       });
-    }, 0);
+    });
   }
   #emitDeletedRecord(entry: ExtendedMetadata<K, V>, reason: CacheEventReason): void {
     const onDeleted = this.onDeletedMap.get(entry);
     if (onDeleted) {
       this.onDeletedMap.delete(entry);
       // Call old onDeleted callback
-      setTimeout(() => {
+      queueMicrotask(() => {
         onDeleted(entry, reason);
-      }, 0);
+      });
     }
   }
 }
