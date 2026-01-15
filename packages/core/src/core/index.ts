@@ -265,7 +265,7 @@ export default class LRU_TTL<
     // Update TTL
     entry.lastAccessedAt = now;
     // Move to MRU
-    moveToMRU(this, entry);
+    this._moveToMRU(entry);
     return entry;
   }
 
@@ -631,6 +631,17 @@ export default class LRU_TTL<
     }
   }
 
+  protected _moveToMRU<K, V, M extends Metadata<K, V>>(entry: M): void {
+    // Remove from current position
+    entry._prev._next = entry._next;
+    entry._next._prev = entry._prev;
+    // Append to MRU position
+    entry._prev = this._prev;
+    entry._next = this;
+    this._prev._next = entry;
+    this._prev = entry;
+  }
+
   /** Create a new LRU_TTL instance from various sources */
   static from<K, V, ResolverArgs extends any[], M extends Metadata<K, V>>(
     src: LRU_TTL<K, V, ResolverArgs, M> | Map<K, V> | Iterable<[K, V]> | Array<[K, V]>,
@@ -639,18 +650,4 @@ export default class LRU_TTL<
     options = { ...options, entries: src };
     return new LRU_TTL<K, V, ResolverArgs, M>(options);
   }
-}
-
-export function moveToMRU<K, V, M extends Metadata<K, V>>(
-  cache: LRU_TTL<K, V, any[], M>,
-  entry: M,
-): void {
-  // Remove from current position
-  entry._prev._next = entry._next;
-  entry._next._prev = entry._prev;
-  // Append to MRU position
-  entry._prev = cache._prev;
-  entry._next = cache;
-  cache._prev._next = entry;
-  cache._prev = entry;
 }

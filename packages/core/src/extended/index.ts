@@ -1,5 +1,5 @@
 import EventEmitter from 'node:events';
-import LRU_TTL, { moveToMRU } from '../core';
+import LRU_TTL from '../core';
 import { CacheEventReason, ExtendedMetadata, ExtendedResolverResultType, OnDeleted } from './types';
 import { LruLinkedNode } from '../core/types';
 
@@ -182,7 +182,7 @@ export default class Extended_LRU_TTL<K, V, ResolverArgs extends any[] = []> ext
     // Move to MRU if temporary
     if (!entry.isPermanent) {
       // Move to MRU
-      moveToMRU(this, entry);
+      this._moveToMRU(entry);
     }
     return entry;
   }
