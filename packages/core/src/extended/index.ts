@@ -454,13 +454,14 @@ export default class Extended_LRU_TTL<K, V, ResolverArgs extends any[] = []> ext
   #emitDeletedRecords(records: ExtendedMetadata<K, V>[], reason: CacheEventReason): void {
     const onDeletedMap = this.onDeletedMap;
     queueMicrotask(() => {
-      records.forEach((record) => {
+      for (let i = 0, len = records.length; i < len; ++i) {
+        const record = records[i];
         const onDeleted = onDeletedMap.get(record);
         if (onDeleted) {
           onDeleted(record, reason);
           onDeletedMap.delete(record);
         }
-      });
+      }
     });
   }
   #emitDeletedRecord(entry: ExtendedMetadata<K, V>, reason: CacheEventReason): void {
