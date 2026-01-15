@@ -522,33 +522,24 @@ export default class LRU_TTL<
   }
 
   /** For(of) */
-  *[Symbol.iterator](): IterableIterator<M> {
-    const it = this._map.values();
-    let v = it.next();
-    while (!v.done) {
-      yield v.value;
-      v = it.next();
-    }
+  [Symbol.iterator](): IterableIterator<M> {
+    return this._map.values();
   }
 
-  *entries(): IterableIterator<[K, V]> {
-    for (const { key, value } of this) {
-      yield [key, value];
-    }
+  entries(): IterableIterator<[K, V]> {
+    return this._map.values().map(({ key, value }) => [key, value]);
   }
 
   entriesMetadata(): IterableIterator<M> {
-    return this[Symbol.iterator]();
+    return this._map.values();
   }
 
   keys(): IterableIterator<K> {
     return this._map.keys();
   }
 
-  *values(): IterableIterator<V> {
-    for (const { value } of this) {
-      yield value;
-    }
+  values(): IterableIterator<V> {
+    return this._map.values().map(({ value }) => value);
   }
 
   forEach(callback: (value: V, key: K, cache: this, metadata: M) => void, thisArg?: any): void {
