@@ -35,7 +35,7 @@ export default class LRU_TTL<
   /** TTL as set by user */
   #ttlRaw: number | string = Infinity;
   /** TTL accuracy @default ttl/10 */
-  protected _ttlAccuracy: number = 0;
+  protected _ttlAccuracy: number = TTL_ACCURACY_DEFAULT;
   /** TTL accuracy as set by user */
   #ttlAccuracyRaw?: number | string = undefined;
 
@@ -120,19 +120,9 @@ export default class LRU_TTL<
 
     this.#ttlRaw = value;
     this._ttl = parsedValue;
+    this.#initTtlAccuracy();
 
     this.#setupTTLInterval();
-  }
-
-  /** Get evaluated TTL accuracy as number */
-  get evalTTLAccuracy(): number {
-    let ttlAccuracy = this._ttlAccuracy;
-    if (ttlAccuracy === 0) {
-      const ttl = this._ttl;
-      ttlAccuracy =
-        ttl === Infinity ? TTL_ACCURACY_DEFAULT : Math.ceil(ttl / TTL_ACCURACY_DEFAULT_FRAG);
-    }
-    return ttlAccuracy;
   }
 
   /** Get TTL accuracy as set by user as number or string */
@@ -142,15 +132,8 @@ export default class LRU_TTL<
 
   /** Set the accuracy of the TTL checking interval */
   set ttlAccuracy(value: number | string | undefined) {
-    let parsedValue = 0;
-    if (value != null) {
-      parsedValue = parseTimeExpression(value);
-      if (parsedValue < TIME_UNIT) {
-        throw new Error(`Invalid ttlAccuracy value: ${value}. Minimum is ${TIME_UNIT}ms`);
-      }
-    }
-    this._ttlAccuracy = parsedValue;
     this.#ttlAccuracyRaw = value;
+    this.#initTtlAccuracy();
     this.#setupTTLInterval();
   }
 
@@ -297,12 +280,21 @@ export default class LRU_TTL<
   }
 
   /** Clear all items from the cache */
-  clear(): this {
+  clear(): Map<K, M> {
+    const deletedRecords = this._map;
     this._map = new Map<K, M>();
+    // Unlink all nodes for GC
+    let current: LruLinkedNode<K, V> = this._next;
+    while (current !== this) {
+      const nextNode = current._next;
+      current._next = current;
+      current._prev = current;
+      current = nextNode;
+    }
     // Reset linked list
     this._next = this;
     this._prev = this;
-    return this;
+    return deletedRecords;
   }
 
   /**
@@ -439,7 +431,7 @@ export default class LRU_TTL<
     if (this.#ttlInterval != null) clearInterval(this.#ttlInterval);
     if (this._ttl === Infinity) return;
 
-    const ttlAccuracy = this.evalTTLAccuracy;
+    const ttlAccuracy = this._ttlAccuracy;
     if (ttlAccuracy === Infinity)
       throw new Error(
         `Invalid ttlAccuracy value: cannot be Infinity when ttl is set (ttl= ${this._ttl}).`,
@@ -614,6 +606,22 @@ export default class LRU_TTL<
         dupEntry.value = value;
       }
     }
+  }
+
+  #initTtlAccuracy() {
+    let ttlAccuracy = this.#ttlAccuracyRaw;
+    let parsedValue = 0;
+    if (!ttlAccuracy) {
+      const ttl = this._ttl;
+      parsedValue =
+        ttl === Infinity ? TTL_ACCURACY_DEFAULT : Math.ceil(ttl / TTL_ACCURACY_DEFAULT_FRAG);
+    } else if (typeof ttlAccuracy === 'string') {
+      parsedValue = parseTimeExpression(ttlAccuracy);
+      if (parsedValue < TIME_UNIT) {
+        throw new Error(`Invalid ttlAccuracy value: ${ttlAccuracy}. Minimum is ${TIME_UNIT}ms`);
+      }
+    }
+    this._ttlAccuracy = parsedValue;
   }
 
   /** Construct empty cache from LRU_TTL entries */
