@@ -31,10 +31,10 @@ const FACTORS: Record<string, number> = {
  */
 export function parseBytes(value: BytesValue): number {
   if (typeof value === 'number') return value;
-  if (typeof value !== 'string') throw new Error(`Invalid bytes value type: ${typeof value}`);
+  if (typeof value !== 'string') throw new TypeError(`Invalid bytes value type: "${typeof value}"`);
 
   const match = value.replace(/[_\s]+/g, '').match(UNIT_REGEX);
-  if (match == null) throw new Error(`Invalid bytes format: ${value}`);
+  if (match == null) throw new Error(`Invalid bytes format: "${value}"`);
 
   const [, numStr, unit] = match;
   const num = +numStr;

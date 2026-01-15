@@ -8,7 +8,7 @@ const TIME_REGEX = /(\d+(?:\.\d+)?)\s*([a-z]+)/gi;
 export function parseTimeExpression(expression: string | number): number {
   if (typeof expression === 'number') return expression;
   if (typeof expression !== 'string') {
-    throw new Error(`Invalid time expression type: ${typeof expression}`);
+    throw new TypeError(`Invalid time expression type: "${typeof expression}"`);
   }
 
   let totalMs = 0;
