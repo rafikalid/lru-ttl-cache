@@ -526,30 +526,19 @@ export default class LRU_TTL<
     const it = this._map.values();
     let v = it.next();
     while (!v.done) {
-      const entry = v.value;
-      yield entry;
+      yield v.value;
       v = it.next();
     }
   }
 
   *entries(): IterableIterator<[K, V]> {
-    const it = this._map.values();
-    let v = it.next();
-    while (!v.done) {
-      const entry = v.value;
-      yield [entry.key, entry.value];
-      v = it.next();
+    for (const { key, value } of this) {
+      yield [key, value];
     }
   }
 
-  *entriesMetadata(): IterableIterator<M> {
-    const it = this._map.values();
-    let v = it.next();
-    while (!v.done) {
-      const entry = v.value;
-      yield entry;
-      v = it.next();
-    }
+  entriesMetadata(): IterableIterator<M> {
+    return this[Symbol.iterator]();
   }
 
   keys(): IterableIterator<K> {
@@ -557,22 +546,14 @@ export default class LRU_TTL<
   }
 
   *values(): IterableIterator<V> {
-    const it = this._map.values();
-    let v = it.next();
-    while (!v.done) {
-      const entry = v.value;
-      yield entry.value;
-      v = it.next();
+    for (const { value } of this) {
+      yield value;
     }
   }
 
   forEach(callback: (value: V, key: K, cache: this, metadata: M) => void, thisArg?: any): void {
-    const it = this._map.values();
-    let v = it.next();
-    while (!v.done) {
-      const entry = v.value;
+    for (const entry of this) {
       callback.call(thisArg, entry.value, entry.key, this, entry);
-      v = it.next();
     }
   }
 
@@ -581,28 +562,21 @@ export default class LRU_TTL<
     thisArg?: any,
   ): Map<T, Array<{ key: K; value: V; metadata: M }>> {
     const result = new Map<T, Array<{ key: K; value: V; metadata: M }>>();
-    const it = this._map.values();
-    let v = it.next();
-    while (!v.done) {
-      const entry = v.value;
+    for (const entry of this) {
       const groupKey = grouper.call(thisArg, entry.value, entry.key, this, entry);
       if (!result.has(groupKey)) {
         result.set(groupKey, []);
       }
       result.get(groupKey)!.push({ key: entry.key, value: entry.value, metadata: entry });
-      v = it.next();
     }
     return result;
   }
 
   async *[Symbol.asyncIterator](): AsyncIterableIterator<M> {
     // Serve resolved entries immediately, and collect pending promises
-    const it = this._map.values();
-    let v = it.next();
     let pendingPromises: Promise<M>[] = [];
     const mapPendingPromises = new Map<K, Promise<M>>();
-    while (!v.done) {
-      const entry = v.value;
+    for (const entry of this) {
       if (entry.value instanceof Promise) {
         const pendingPromise = entry.value.then(
           (resolvedValue: V) => ({ ...entry, value: resolvedValue } as M),
@@ -612,7 +586,6 @@ export default class LRU_TTL<
       } else {
         yield entry;
       }
-      v = it.next();
     }
 
     // Await and yield pending promises
