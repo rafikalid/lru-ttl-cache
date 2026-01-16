@@ -27,7 +27,9 @@ describe('parseTimeExpression', () => {
   });
 
   it('should parse combined expressions', () => {
-    expect(parseTimeExpression('2d 5h 4min 5s 23ms')).toBe((2*86400 + 5*3600 + 4*60 + 5) * 1000 + 23);
+    expect(parseTimeExpression('2d 5h 4min 5s 23ms')).toBe(
+      (2 * 86400 + 5 * 3600 + 4 * 60 + 5) * 1000 + 23,
+    );
   });
 
   it('should handle whitespace variations', () => {
@@ -52,7 +54,9 @@ describe('parseTimeExpression', () => {
   });
 
   it('should throw on invalid type', () => {
-    expect(() => parseTimeExpression(null as unknown as string)).toThrow('Invalid time expression type');
+    expect(() => parseTimeExpression(null as unknown as string)).toThrow(
+      'Invalid time expression type',
+    );
   });
 
   it('should throw on only whitespace', () => {
