@@ -534,7 +534,15 @@ export default class LRU_TTL<
     return this._map.values().map(({ value }) => value);
   }
 
-  forEach(callback: (value: V, key: K, cache: this, metadata: M) => void, thisArg?: any): void {
+  forEach(callback: (value: V, key: K, cache: this, metadata: M) => void): void;
+  forEach<This>(
+    callback: (this: This, value: V, key: K, cache: this, metadata: M) => void,
+    thisArg: This,
+  ): void;
+  forEach<This>(
+    callback: (this: This | this, value: V, key: K, cache: this, metadata: M) => void,
+    thisArg: This | this = this,
+  ): void {
     for (const entry of this) {
       callback.call(thisArg, entry.value, entry.key, this, entry);
     }
@@ -542,7 +550,14 @@ export default class LRU_TTL<
 
   groupBy<T>(
     grouper: (value: V, key: K, cache: this, metadata: M) => T,
-    thisArg?: any,
+  ): Map<T, Array<{ key: K; value: V; metadata: M }>>;
+  groupBy<T, This>(
+    grouper: (this: This, value: V, key: K, cache: this, metadata: M) => T,
+    thisArg: This,
+  ): Map<T, Array<{ key: K; value: V; metadata: M }>>;
+  groupBy<T, This>(
+    grouper: (this: This | this, value: V, key: K, cache: this, metadata: M) => T,
+    thisArg: This | this = this,
   ): Map<T, Array<{ key: K; value: V; metadata: M }>> {
     const result = new Map<T, Array<{ key: K; value: V; metadata: M }>>();
     for (const entry of this) {
