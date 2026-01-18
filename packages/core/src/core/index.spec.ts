@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import LRU_TTL from './index';
+import LRU_TTL, { TIME_UNIT } from './index';
 
 describe('LRU_TTL - Basic Operations', () => {
   let cache: LRU_TTL<string, string>;
@@ -435,6 +435,9 @@ describe('LRU_TTL - TTL (Time To Live)', () => {
     cache2.set('key1', 'value1');
 
     cache2.ttl = 50;
+    expect(cache2.evalTTL).toBe(50);
+    expect(cache2.evalTtlAccuracy).toBe(TIME_UNIT);
+    expect(cache2.has('key1')).toBe(true);
     await new Promise((resolve) => setTimeout(resolve, 100));
 
     expect(cache2.has('key1')).toBe(false);
@@ -445,7 +448,7 @@ describe('LRU_TTL - TTL Accuracy', () => {
   it('should use default TTL accuracy', () => {
     const cache = new LRU_TTL({ ttl: 1000 });
     // Default: ttl / 10
-    expect(cache.ttlAccuracy).toBe(100);
+    expect(cache.evalTtlAccuracy).toBe(100);
   });
 
   it('should clamp TTL accuracy to minimum', () => {
@@ -456,13 +459,13 @@ describe('LRU_TTL - TTL Accuracy', () => {
 
   it('should accept string-based TTL accuracy', () => {
     const cache = new LRU_TTL({ ttl: 1000, ttlAccuracy: '100ms' });
-    expect(cache.ttlAccuracy).toBe(100);
+    expect(cache.evalTtlAccuracy).toBe(100);
   });
 
   it('should allow setting TTL accuracy after construction', () => {
     const cache = new LRU_TTL({ ttl: 1000 });
     cache.ttlAccuracy = '50ms';
-    expect(cache.ttlAccuracy).toBe(50);
+    expect(cache.evalTtlAccuracy).toBe(50);
   });
 });
 
@@ -564,14 +567,13 @@ describe('LRU_TTL - Resolvers', () => {
 
   it('should handle Promise resolver errors', async () => {
     const resolver = () => Promise.reject(new Error('resolver error'));
-    const cache = new LRU_TTL<string, string>({
-      defaultResolver: resolver as any,
+    const cache = new LRU_TTL<string, Promise<string>>({
+      defaultResolver: resolver,
     });
 
-    cache.resolveMetadata('key1');
+    const resultP = cache.resolveMetadata('key1');
     expect(cache.has('key1')).toBe(true);
-
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await expect(resultP?.value).rejects.toThrow('resolver error');
 
     expect(cache.has('key1')).toBe(false);
   });
@@ -620,7 +622,7 @@ describe('LRU_TTL - Initialization', () => {
 
     expect(cache.evalMax).toBe(10);
     expect(cache.evalTTL).toBe(1000);
-    expect(cache.ttlAccuracy).toBe(100);
+    expect(cache.evalTtlAccuracy).toBe(100);
   });
 });
 

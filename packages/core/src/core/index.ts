@@ -2,22 +2,21 @@ import { LruLinkedNode, Metadata, Options, Resolver, ResolverResultType } from '
 import { BytesValue, parseBytes } from '../utils/bytes-parser';
 import { parseTimeExpression } from '../utils/time-parser';
 
-const TTL_ACCURACY_DEFAULT_FRAG = 10;
-const TTL_ACCURACY_DEFAULT = 1000; // 1s
+export const TTL_ACCURACY_DEFAULT_FRAG = 10;
+export const TTL_ACCURACY_DEFAULT = 1000; // 1s
 /**
  * 15ms. Minimum timer accuracy in Node.js and browsers.
  * Using a lower value is pointless as the timer won't be more accurate.
  * This is used to clamp ttlAccuracy values.
  */
-const TIME_UNIT = 15;
+export const TIME_UNIT = 15;
 
 export default class LRU_TTL<
   K = any,
   V = any,
   ResolverArgs extends any[] = any[],
   M extends Metadata<K, V> = Metadata<K, V>,
-> implements LruLinkedNode<K, V>
-{
+> implements LruLinkedNode<K, V> {
   /** MRU @private */
   _prev: LruLinkedNode<K, V> = this;
   /** LRU @private */
@@ -127,7 +126,11 @@ export default class LRU_TTL<
 
   /** Get TTL accuracy as set by user as number or string */
   get ttlAccuracy(): number | string | undefined {
-    return this.#ttlAccuracyRaw;
+    return this.#ttlAccuracyRaw ?? this._ttlAccuracy;
+  }
+
+  get evalTtlAccuracy(): number {
+    return this._ttlAccuracy;
   }
 
   /** Set the accuracy of the TTL checking interval */
@@ -577,7 +580,7 @@ export default class LRU_TTL<
     for (const entry of this) {
       if (entry.value instanceof Promise) {
         const pendingPromise = entry.value.then(
-          (resolvedValue: V) => ({ ...entry, value: resolvedValue } as M),
+          (resolvedValue: V) => ({ ...entry, value: resolvedValue }) as M,
         );
         pendingPromises.push(pendingPromise);
         mapPendingPromises.set(entry.key, pendingPromise);
@@ -629,12 +632,18 @@ export default class LRU_TTL<
     if (!ttlAccuracy) {
       const ttl = this._ttl;
       parsedValue =
-        ttl === Infinity ? TTL_ACCURACY_DEFAULT : Math.ceil(ttl / TTL_ACCURACY_DEFAULT_FRAG);
+        ttl === Infinity
+          ? TTL_ACCURACY_DEFAULT
+          : Math.max(Math.ceil(ttl / TTL_ACCURACY_DEFAULT_FRAG), TIME_UNIT);
     } else if (typeof ttlAccuracy === 'string') {
       parsedValue = parseTimeExpression(ttlAccuracy);
-      if (parsedValue < TIME_UNIT) {
-        throw new Error(`Invalid ttlAccuracy value: ${ttlAccuracy}. Minimum is ${TIME_UNIT}ms`);
-      }
+    } else if (typeof ttlAccuracy === 'number') {
+      parsedValue = ttlAccuracy;
+    } else {
+      throw new Error(`Invalid ttlAccuracy type: ${typeof ttlAccuracy}`);
+    }
+    if (parsedValue < TIME_UNIT) {
+      throw new Error(`Invalid ttlAccuracy value: ${ttlAccuracy}. Minimum is ${TIME_UNIT}ms`);
     }
     this._ttlAccuracy = parsedValue;
   }
