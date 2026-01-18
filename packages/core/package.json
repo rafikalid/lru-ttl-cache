@@ -14,7 +14,7 @@
   },
   "scripts": {
     "build": "tsup",
-    "test": "vitest"
+    "test": "vitest --run"
   },
   "repository": "git+https://github.com/rafikalid/lru-ttl-cache.git",
   "keywords": [
