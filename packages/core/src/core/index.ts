@@ -41,11 +41,7 @@ export default class LRU_TTL<
   /** defaultResolver */
   #defaultResolver?: Resolver<K, V, ResolverArgs> = undefined;
 
-  /**
-   * Total entries weight, for this class it equals the number of items,
-   * but in the extended class it will be the actual total records weight instead
-   */
-  // protected _weight: number = 0;
+  #enforceMaxLimitsTask: NodeJS.Immediate | null = null;
 
   /** TTL Check Interval ID */
   #ttlInterval: NodeJS.Timeout | null = null;
@@ -485,6 +481,14 @@ export default class LRU_TTL<
   }
 
   protected _enforceMaxLimits() {
+    if (this.#enforceMaxLimitsTask != null) return;
+    this.#enforceMaxLimitsTask = setImmediate(() => {
+      this.#enforceMaxLimitsTask = null;
+      this._enforceMaxLimitsApply();
+    });
+  }
+
+  protected _enforceMaxLimitsApply() {
     const maxSize = this._max;
     let size = this._map.size;
     if (size <= maxSize) return;

@@ -307,7 +307,7 @@ export default class Extended_LRU_TTL<K, V, ResolverArgs extends any[] = []> ext
   }
 
   /** @override */
-  protected _enforceMaxLimits() {
+  protected _enforceMaxLimitsApply() {
     const maxWeight = this._max;
     let temporaryItemsWeight = this.#tempWeight;
     if (temporaryItemsWeight <= maxWeight) return;
