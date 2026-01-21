@@ -190,15 +190,33 @@ export default class LRU_TTL<
     let entry = map.get(key);
 
     if (entry == null) {
+      // Remove LRU if max exceeded
+      if (this._map.size >= this._max) {
+        const lru = this._next as M;
+        // Remove from map
+        map.delete(lru.key);
+        // Remove from LRU position
+        this._next = lru._next;
+        lru._next._prev = this;
+        // RC
+        lru._next = lru;
+        lru._prev = lru;
+      }
+      // Create new entry
+      const currentMru = this._prev;
       entry = {
         key,
         value,
         lastAccessedAt: now,
         addedAt: now,
         _next: this,
-        _prev: this,
+        _prev: currentMru,
       } as unknown as M;
+      // add to map
       map.set(key, entry);
+      // Append to MRU position
+      currentMru._next = entry;
+      this._prev = entry;
     } else {
       // Remove from current position in LRU list
       entry._prev._next = entry._next;
@@ -208,6 +226,10 @@ export default class LRU_TTL<
         // Update existing entry
         entry.lastAccessedAt = now;
       } else {
+        // GC friendly update
+        entry._next = entry;
+        entry._prev = entry;
+        // new entry
         entry = {
           key,
           value,
@@ -218,16 +240,12 @@ export default class LRU_TTL<
         } as unknown as M;
         map.set(key, entry);
       }
+      // Append to MRU position
+      entry._prev = this._prev;
+      entry._next = this;
+      this._prev._next = entry;
+      this._prev = entry;
     }
-
-    // Append to MRU position
-    entry._prev = this._prev;
-    entry._next = this;
-    this._prev._next = entry;
-    this._prev = entry;
-
-    // Enforce max limits
-    if (this._map.size > this._max) this._enforceMaxLimits();
     return entry;
   }
 
