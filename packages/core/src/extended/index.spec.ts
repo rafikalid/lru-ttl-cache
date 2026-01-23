@@ -756,7 +756,7 @@ describe('Extended_LRU_TTL', () => {
       expect(cache.weight).toBe(4);
     });
 
-    describe.only('should maintain consistency when converting items multiple times', () => {
+    describe('should maintain consistency when converting items multiple times', () => {
       let cache: Extended_LRU_TTL<string, number>;
       beforeAll(() => {
         cache = new Extended_LRU_TTL<string, number>();
