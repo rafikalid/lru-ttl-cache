@@ -97,7 +97,7 @@ export default class Extended_LRU_TTL<K, V, ResolverArgs extends any[] = []> ext
       }
     } else {
       const oldIsPermanent = entry.isPermanent;
-      const isPermanentUnchanged = oldIsPermanent === isPermanent;
+      const isPermanentFlagUnchanged = oldIsPermanent === isPermanent;
       // Remove from current position in LRU list
       if (!oldIsPermanent) {
         entry._prev._next = entry._next;
@@ -106,7 +106,7 @@ export default class Extended_LRU_TTL<K, V, ResolverArgs extends any[] = []> ext
       // Update stats
       const weightDelta = weight - entry.weight;
       cacheWeight += weightDelta;
-      if (isPermanentUnchanged) {
+      if (isPermanentFlagUnchanged) {
         if (isPermanent) {
           permWeight += weightDelta;
         } else {
@@ -124,7 +124,7 @@ export default class Extended_LRU_TTL<K, V, ResolverArgs extends any[] = []> ext
         permWeight += weight;
       }
       // Add entry
-      if (entry.value === value && !isPermanentUnchanged) {
+      if (entry.value === value && isPermanentFlagUnchanged) {
         // Update existing entry
         entry.weight = weight;
         entry.lastAccessedAt = now;
