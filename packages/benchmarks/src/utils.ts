@@ -24,25 +24,23 @@ export function formatNumber(num: number) {
 }
 
 export function zipfKeys(n, skew = 1.2) {
-const keys = Array.from({ length: n }, (_, i) => i);
-const weights = keys.map(k => 1 / Math.pow(k + 1, skew));
-const sum = weights.reduce((a, b) => a + b, 0);
-const probs = weights.map(w => w / sum);
+  const keys = Array.from({ length: n }, (_, i) => i);
+  const weights = keys.map((k) => 1 / Math.pow(k + 1, skew));
+  const sum = weights.reduce((a, b) => a + b, 0);
+  const probs = weights.map((w) => w / sum);
 
-
-return () => {
-let r = Math.random();
-for (let i = 0; i < probs.length; i++) {
-r -= probs[i];
-if (r <= 0) return keys[i];
+  return () => {
+    let r = Math.random();
+    for (let i = 0; i < probs.length; i++) {
+      r -= probs[i];
+      if (r <= 0) return keys[i];
+    }
+    return keys[keys.length - 1];
+  };
 }
-return keys[keys.length - 1];
-};
-}
-
 
 export function randomKeys(n) {
-return () => Math.floor(Math.random() * n);
+  return () => Math.floor(Math.random() * n);
 }
 
 export function printResults(results: BenchmarkStats[]) {
@@ -75,9 +73,10 @@ export function printResults(results: BenchmarkStats[]) {
       );
     });
   });
+}
 
-  export function printSummary(results: BenchmarkStats[]) {
-    const libraries = Array.from(new Set(results.map((r) => r.name.split(' - ')[0])));
+export function printSummary(results: BenchmarkStats[]) {
+  const libraries = Array.from(new Set(results.map((r) => r.name.split(' - ')[0])));
   const overallScores = libraries.map((lib) => {
     const libResults = results.filter((r) => r.name.startsWith(lib));
     const avgOps = libResults.reduce((sum, r) => sum + r.opsPerSecond, 0) / libResults.length;
@@ -104,4 +103,4 @@ export function printResults(results: BenchmarkStats[]) {
   console.log('\n' + '='.repeat(80));
   console.log('🏆 Winner: ' + overallScores[0].library);
   console.log('='.repeat(80) + '\n');
-  }
+}
