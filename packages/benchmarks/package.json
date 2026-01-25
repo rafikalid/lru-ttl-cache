@@ -3,10 +3,24 @@
 	"type": "module",
 	"private": true,
 	"scripts": {
-		"bench": "node ./src/index.ts"
+		"build": "tsup",
+		"bench": "yarn build && yarn bench:run",
+		"bench:run": "node --expose-gc ./dist/index.js",
+		"bench:no-gc": "yarn build && node ./dist/index.js"
 	},
 	"dependencies": {
-		"@lru-ttl-cache/core": "workspace:*",
-		"benchmark": "^2.1.4"
+		"benchmark": "^2.1.4",
+		"js-lru": "^1.0.0",
+		"lru": "^3.1.0",
+		"lru-cache": "^11.2.4",
+		"lru-ttl-cache": "workspace:*",
+		"mnemonist": "^0.40.3",
+		"quick-lru": "^7.3.0"
+	},
+	"devDependencies": {
+		"@types/benchmark": "^2.1.5",
+		"@types/node": "^25.0.10",
+		"tsup": "^8.5.1",
+		"typescript": "^5.9.3"
 	}
 }

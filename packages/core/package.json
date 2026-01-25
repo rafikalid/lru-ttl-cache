@@ -1,15 +1,19 @@
 {
-  "name": "@lru-ttl-cache/core",
-  "version": "4.0.0",
+  "name": "lru-ttl-cache",
+  "version": "4.0.0-beta.1",
   "description": "Fast LRU and TTL cache with upsert and promise option",
   "type": "module",
   "main": "./dist/index.cjs",
-  "module": "./dist/index.mjs",
+  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.mjs",
+      "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./extended": {
+      "import": "./dist/extended/index.js",
+      "require": "./dist/extended/index.cjs"
     }
   },
   "scripts": {
