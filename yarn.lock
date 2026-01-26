@@ -435,12 +435,14 @@ __metadata:
     "@types/benchmark": "npm:^2.1.5"
     "@types/node": "npm:^25.0.10"
     benchmark: "npm:^2.1.4"
-    js-lru: "npm:^1.0.0"
+    hashlru: "npm:^2.3.0"
     lru: "npm:^3.1.0"
     lru-cache: "npm:^11.2.4"
     lru-ttl-cache: "workspace:*"
     mnemonist: "npm:^0.40.3"
     quick-lru: "npm:^7.3.0"
+    simple-lru-cache: "npm:^0.0.2"
+    tiny-lru: "npm:^11.4.7"
     tsup: "npm:^8.5.1"
     typescript: "npm:^5.9.3"
   languageName: unknown
@@ -1198,6 +1200,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"hashlru@npm:^2.3.0":
+  version: 2.3.0
+  resolution: "hashlru@npm:2.3.0"
+  checksum: 10c0/90f351db1a320c43aeb681c7e806f35af6877a86d3fa9b970636ea21f111d0f0b819e046dc9b5fe6a8ab211a3d98178eb37aacbad29ea4f6f53554a4541a6f0d
+  languageName: node
+  linkType: hard
+
 "http-cache-semantics@npm:^4.1.1":
   version: 4.2.0
   resolution: "http-cache-semantics@npm:4.2.0"
@@ -1266,13 +1275,6 @@ __metadata:
   version: 3.1.1
   resolution: "joycon@npm:3.1.1"
   checksum: 10c0/131fb1e98c9065d067fd49b6e685487ac4ad4d254191d7aa2c9e3b90f4e9ca70430c43cad001602bdbdabcf58717d3b5c5b7461c1bd8e39478c8de706b3fe6ae
-  languageName: node
-  linkType: hard
-
-"js-lru@npm:^1.0.0":
-  version: 1.0.0
-  resolution: "js-lru@npm:1.0.0"
-  checksum: 10c0/787fa1e02542509f066f9b18312b5775e74beb59abb501a1da99663938eb8d4bee23067054760612f2b57a1488ae5224e6e6976d4fc9f495f26445eb8f1bcf38
   languageName: node
   linkType: hard
 
@@ -1806,6 +1808,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"simple-lru-cache@npm:^0.0.2":
+  version: 0.0.2
+  resolution: "simple-lru-cache@npm:0.0.2"
+  checksum: 10c0/1fa03f9b61cdf2d385f38a8bb2dd9eb41748dea2a6fc4c4d157bdb3633c556317ea7281feebce8942c8835f26364db443f3b9029d7bc09784ca3005e093cb79d
+  languageName: node
+  linkType: hard
+
 "smart-buffer@npm:^4.2.0":
   version: 4.2.0
   resolution: "smart-buffer@npm:4.2.0"
@@ -1917,6 +1926,13 @@ __metadata:
   dependencies:
     any-promise: "npm:^1.0.0"
   checksum: 10c0/f375aeb2b05c100a456a30bc3ed07ef03a39cbdefe02e0403fb714b8c7e57eeaad1a2f5c4ecfb9ce554ce3db9c2b024eba144843cd9e344566d9fcee73b04767
+  languageName: node
+  linkType: hard
+
+"tiny-lru@npm:^11.4.7":
+  version: 11.4.7
+  resolution: "tiny-lru@npm:11.4.7"
+  checksum: 10c0/2cd65b987396e331ddcef57133b3f0cb30c832641a215a2e627af04941c839ca6772f216b238e96500b4747f39b434d129cec4c0a25db3beb08c8f3d448a2705
   languageName: node
   linkType: hard
 

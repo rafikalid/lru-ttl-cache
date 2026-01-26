@@ -1,4 +1,4 @@
-import { runBenchmarks } from './lru-benchmark.js';
+import { runLruBenchmark } from './lru-benchmark.js';
 
 async function main() {
   console.log('Starting LRU Cache Library Benchmarks...\n');
@@ -6,7 +6,7 @@ async function main() {
   console.log('Example: node --expose-gc src/index.ts\n');
 
   try {
-    const results = await runBenchmarks();
+    const results = await runLruBenchmark();
     console.log('\n✅ Benchmarks completed successfully!');
     console.log(`Total tests run: ${results.length}`);
   } catch (error) {
