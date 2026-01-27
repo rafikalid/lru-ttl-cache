@@ -434,16 +434,20 @@ __metadata:
   dependencies:
     "@types/benchmark": "npm:^2.1.5"
     "@types/node": "npm:^25.0.10"
+    "@types/timed-cache": "npm:^2"
     benchmark: "npm:^2.1.4"
     hashlru: "npm:^2.3.0"
     lru: "npm:^3.1.0"
     lru-cache: "npm:^11.2.4"
     lru-ttl-cache: "workspace:*"
     mnemonist: "npm:^0.40.3"
+    node-cache: "npm:^5.1.2"
     quick-lru: "npm:^7.3.0"
     simple-lru-cache: "npm:^0.0.2"
+    timed-cache: "npm:^2.0.0"
     tiny-lru: "npm:^11.4.7"
     tsup: "npm:^8.5.1"
+    ttl-cache: "npm:^1.0.2"
     typescript: "npm:^5.9.3"
   languageName: unknown
   linkType: soft
@@ -680,6 +684,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/timed-cache@npm:^2":
+  version: 2.0.4
+  resolution: "@types/timed-cache@npm:2.0.4"
+  checksum: 10c0/f12c94772f61217d07d243047be5637b5025fa63ac7ef97c2a2de461f7ff4e092eb3765b58b7f77a36b8450f839bb98d159cb45e0e61a363dec19b6dd95b6b4b
+  languageName: node
+  linkType: hard
+
 "@vitest/expect@npm:4.0.15":
   version: 4.0.15
   resolution: "@vitest/expect@npm:4.0.15"
@@ -864,6 +875,13 @@ __metadata:
   version: 3.0.0
   resolution: "chownr@npm:3.0.0"
   checksum: 10c0/43925b87700f7e3893296c8e9c56cc58f926411cce3a6e5898136daaf08f08b9a8eb76d37d3267e707d0dcc17aed2e2ebdf5848c0c3ce95cf910a919935c1b10
+  languageName: node
+  linkType: hard
+
+"clone@npm:2.x":
+  version: 2.1.2
+  resolution: "clone@npm:2.1.2"
+  checksum: 10c0/ed0601cd0b1606bc7d82ee7175b97e68d1dd9b91fd1250a3617b38d34a095f8ee0431d40a1a611122dcccb4f93295b4fdb94942aa763392b5fe44effa50c2d5e
   languageName: node
   linkType: hard
 
@@ -1510,6 +1528,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"node-cache@npm:^5.1.2":
+  version: 5.1.2
+  resolution: "node-cache@npm:5.1.2"
+  dependencies:
+    clone: "npm:2.x"
+  checksum: 10c0/2f91907510a1276415ae5898269d0765934d5a4f3682c8b1b19964694a9b841c8bd791e1a125d1f89050f412e1da5dd982179d714252b3a7223abb05b8cb24d5
+  languageName: node
+  linkType: hard
+
 "node-gyp@npm:latest":
   version: 12.1.0
   resolution: "node-gyp@npm:12.1.0"
@@ -1929,6 +1956,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"timed-cache@npm:^2.0.0":
+  version: 2.0.0
+  resolution: "timed-cache@npm:2.0.0"
+  checksum: 10c0/c9da58ed2baeafd3c8627e6a2dd6f78c57acf9d632e72a56a7e9a0b684611a6b7fa2583ee57c40d1a98b5d83d7c8cbab54213453acc2a16595bfb93b0aea2295
+  languageName: node
+  linkType: hard
+
 "tiny-lru@npm:^11.4.7":
   version: 11.4.7
   resolution: "tiny-lru@npm:11.4.7"
@@ -2029,6 +2063,13 @@ __metadata:
     tsup: dist/cli-default.js
     tsup-node: dist/cli-node.js
   checksum: 10c0/86b0a5ee5533cf5363431ffaf6a244d06fbc80e3a739f216a121a336b28e663d521bae1d3b2d9ba7d479cb4b5f7dcb5e0722e169d3daf664c78f0d68676fa06a
+  languageName: node
+  linkType: hard
+
+"ttl-cache@npm:^1.0.2":
+  version: 1.0.2
+  resolution: "ttl-cache@npm:1.0.2"
+  checksum: 10c0/da382d4245aba2c6411c6356188d32adbc69263e47383f079ae3fdc5695fa5db7256422029b64957ebd493e4f0fea5a62798ccc208a1275d46a3c41ef224995b
   languageName: node
   linkType: hard
 

@@ -7,12 +7,13 @@ interface CacheSign {
   delete: (k: string | number) => void;
 }
 
-type CreateCache = (max: number) => CacheSign;
+type CreateCache = (max: number, ttl: number) => CacheSign;
 
 type Scenario = (cache: CacheSign, options: Options) => void;
 
 export interface Options {
   max: number;
+  ttl: number;
 }
 
 export class benchBuilder {
@@ -49,7 +50,7 @@ export class benchBuilder {
         suite.add(
           `[${name}] ${title}`,
           () => {
-            const cache = create(options.max);
+            const cache = create(options.max, options.ttl);
             scenario(cache, options);
           },
           {

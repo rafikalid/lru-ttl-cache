@@ -15,13 +15,17 @@
 		"lru-cache": "^11.2.4",
 		"lru-ttl-cache": "workspace:*",
 		"mnemonist": "^0.40.3",
+		"node-cache": "^5.1.2",
 		"quick-lru": "^7.3.0",
 		"simple-lru-cache": "^0.0.2",
-		"tiny-lru": "^11.4.7"
+		"timed-cache": "^2.0.0",
+		"tiny-lru": "^11.4.7",
+		"ttl-cache": "^1.0.2"
 	},
 	"devDependencies": {
 		"@types/benchmark": "^2.1.5",
 		"@types/node": "^25.0.10",
+		"@types/timed-cache": "^2",
 		"tsup": "^8.5.1",
 		"typescript": "^5.9.3"
 	}
