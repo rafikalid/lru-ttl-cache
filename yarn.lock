@@ -1336,6 +1336,7 @@ __metadata:
   resolution: "lru-ttl-cache-monorepo@workspace:."
   dependencies:
     "@types/node": "npm:^25.0.3"
+    hashlru: "npm:^2.3.0"
     typescript: "npm:^5.9.3"
   languageName: unknown
   linkType: soft

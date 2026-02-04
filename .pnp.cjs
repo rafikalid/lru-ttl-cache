@@ -39,6 +39,7 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "./",\
         "packageDependencies": [\
           ["@types/node", "npm:25.0.3"],\
+          ["hashlru", "npm:2.3.0"],\
           ["lru-ttl-cache-monorepo", "workspace:."],\
           ["typescript", "patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"]\
         ],\
@@ -537,14 +538,20 @@ const RAW_RUNTIME_STATE =
           ["@lru-ttl-cache/benchmarks", "workspace:packages/benchmarks"],\
           ["@types/benchmark", "npm:2.1.5"],\
           ["@types/node", "npm:25.0.10"],\
+          ["@types/timed-cache", "npm:2.0.4"],\
           ["benchmark", "npm:2.1.4"],\
-          ["js-lru", "npm:1.0.0"],\
+          ["hashlru", "npm:2.3.0"],\
           ["lru", "npm:3.1.0"],\
           ["lru-cache", "npm:11.2.4"],\
           ["lru-ttl-cache", "workspace:packages/core"],\
           ["mnemonist", "npm:0.40.3"],\
+          ["node-cache", "npm:5.1.2"],\
           ["quick-lru", "npm:7.3.0"],\
+          ["simple-lru-cache", "npm:0.0.2"],\
+          ["timed-cache", "npm:2.0.0"],\
+          ["tiny-lru", "npm:11.4.7"],\
           ["tsup", "virtual:c6b9cf7de9534ebad7dbea12a412b7225f11c3f4f1cb2c9b2e65acbaf5d690c156d38e43db3ab05b4cab802f71f164aba917092826dc0370236dba1eed9bd8c7#npm:8.5.1"],\
+          ["ttl-cache", "npm:1.0.2"],\
           ["typescript", "patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"]\
         ],\
         "linkType": "SOFT"\
@@ -837,6 +844,15 @@ const RAW_RUNTIME_STATE =
         "linkType": "HARD"\
       }]\
     ]],\
+    ["@types/timed-cache", [\
+      ["npm:2.0.4", {\
+        "packageLocation": "../../home/node/.yarn/berry/cache/@types-timed-cache-npm-2.0.4-248579ca0b-10c0.zip/node_modules/@types/timed-cache/",\
+        "packageDependencies": [\
+          ["@types/timed-cache", "npm:2.0.4"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
     ["@vitest/expect", [\
       ["npm:4.0.15", {\
         "packageLocation": "../../home/node/.yarn/berry/cache/@vitest-expect-npm-4.0.15-126a2c1673-10c0.zip/node_modules/@vitest/expect/",\
@@ -1066,6 +1082,15 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "../../home/node/.yarn/berry/cache/chownr-npm-3.0.0-5275e85d25-10c0.zip/node_modules/chownr/",\
         "packageDependencies": [\
           ["chownr", "npm:3.0.0"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
+    ["clone", [\
+      ["npm:2.1.2", {\
+        "packageLocation": "../../home/node/.yarn/berry/cache/clone-npm-2.1.2-1d491c6629-10c0.zip/node_modules/clone/",\
+        "packageDependencies": [\
+          ["clone", "npm:2.1.2"]\
         ],\
         "linkType": "HARD"\
       }]\
@@ -1328,6 +1353,15 @@ const RAW_RUNTIME_STATE =
         "linkType": "HARD"\
       }]\
     ]],\
+    ["hashlru", [\
+      ["npm:2.3.0", {\
+        "packageLocation": "../../home/node/.yarn/berry/cache/hashlru-npm-2.3.0-8267692d49-10c0.zip/node_modules/hashlru/",\
+        "packageDependencies": [\
+          ["hashlru", "npm:2.3.0"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
     ["http-cache-semantics", [\
       ["npm:4.2.0", {\
         "packageLocation": "../../home/node/.yarn/berry/cache/http-cache-semantics-npm-4.2.0-fadacfb3ad-10c0.zip/node_modules/http-cache-semantics/",\
@@ -1414,15 +1448,6 @@ const RAW_RUNTIME_STATE =
         "linkType": "HARD"\
       }]\
     ]],\
-    ["js-lru", [\
-      ["npm:1.0.0", {\
-        "packageLocation": "../../home/node/.yarn/berry/cache/js-lru-npm-1.0.0-13fc5b837c-10c0.zip/node_modules/js-lru/",\
-        "packageDependencies": [\
-          ["js-lru", "npm:1.0.0"]\
-        ],\
-        "linkType": "HARD"\
-      }]\
-    ]],\
     ["lilconfig", [\
       ["npm:3.1.3", {\
         "packageLocation": "../../home/node/.yarn/berry/cache/lilconfig-npm-3.1.3-74a77377bb-10c0.zip/node_modules/lilconfig/",\
@@ -1496,6 +1521,7 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "./",\
         "packageDependencies": [\
           ["@types/node", "npm:25.0.3"],\
+          ["hashlru", "npm:2.3.0"],\
           ["lru-ttl-cache-monorepo", "workspace:."],\
           ["typescript", "patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"]\
         ],\
@@ -1680,6 +1706,16 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "../../home/node/.yarn/berry/cache/negotiator-npm-1.0.0-47d727e27e-10c0.zip/node_modules/negotiator/",\
         "packageDependencies": [\
           ["negotiator", "npm:1.0.0"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
+    ["node-cache", [\
+      ["npm:5.1.2", {\
+        "packageLocation": "../../home/node/.yarn/berry/cache/node-cache-npm-5.1.2-f65482660d-10c0.zip/node_modules/node-cache/",\
+        "packageDependencies": [\
+          ["clone", "npm:2.1.2"],\
+          ["node-cache", "npm:5.1.2"]\
         ],\
         "linkType": "HARD"\
       }]\
@@ -1980,6 +2016,15 @@ const RAW_RUNTIME_STATE =
         "linkType": "HARD"\
       }]\
     ]],\
+    ["simple-lru-cache", [\
+      ["npm:0.0.2", {\
+        "packageLocation": "../../home/node/.yarn/berry/cache/simple-lru-cache-npm-0.0.2-313e9034ec-10c0.zip/node_modules/simple-lru-cache/",\
+        "packageDependencies": [\
+          ["simple-lru-cache", "npm:0.0.2"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
     ["smart-buffer", [\
       ["npm:4.2.0", {\
         "packageLocation": "../../home/node/.yarn/berry/cache/smart-buffer-npm-4.2.0-5ac3f668bb-10c0.zip/node_modules/smart-buffer/",\
@@ -2108,6 +2153,24 @@ const RAW_RUNTIME_STATE =
         "linkType": "HARD"\
       }]\
     ]],\
+    ["timed-cache", [\
+      ["npm:2.0.0", {\
+        "packageLocation": "../../home/node/.yarn/berry/cache/timed-cache-npm-2.0.0-d3f51656a9-10c0.zip/node_modules/timed-cache/",\
+        "packageDependencies": [\
+          ["timed-cache", "npm:2.0.0"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
+    ["tiny-lru", [\
+      ["npm:11.4.7", {\
+        "packageLocation": "../../home/node/.yarn/berry/cache/tiny-lru-npm-11.4.7-3fe5ffe03a-10c0.zip/node_modules/tiny-lru/",\
+        "packageDependencies": [\
+          ["tiny-lru", "npm:11.4.7"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
     ["tinybench", [\
       ["npm:2.9.0", {\
         "packageLocation": "../../home/node/.yarn/berry/cache/tinybench-npm-2.9.0-2861a048db-10c0.zip/node_modules/tinybench/",\
@@ -2218,6 +2281,15 @@ const RAW_RUNTIME_STATE =
           "@types/typescript",\
           "postcss",\
           "typescript"\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
+    ["ttl-cache", [\
+      ["npm:1.0.2", {\
+        "packageLocation": "../../home/node/.yarn/berry/cache/ttl-cache-npm-1.0.2-1913a71108-10c0.zip/node_modules/ttl-cache/",\
+        "packageDependencies": [\
+          ["ttl-cache", "npm:1.0.2"]\
         ],\
         "linkType": "HARD"\
       }]\
