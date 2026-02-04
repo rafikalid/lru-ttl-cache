@@ -4,12 +4,11 @@ import { parseTimeExpression } from '../utils/time-parser';
 
 export const TTL_ACCURACY_DEFAULT_FRAG = 10;
 export const TTL_ACCURACY_DEFAULT = 1000; // 1s
-/**
- * 15ms. Minimum timer accuracy in Node.js and browsers.
- * Using a lower value is pointless as the timer won't be more accurate.
- * This is used to clamp ttlAccuracy values.
- */
-export const TIME_UNIT = 15;
+export const TTL_ACCURACY_MIN = 1000;
+
+const TTL_FINALIZATION_REGISTRY = new FinalizationRegistry((intervalId: NodeJS.Timeout) => {
+  clearInterval(intervalId);
+});
 
 export default class LRU_TTL<
   K = any,
@@ -45,7 +44,7 @@ export default class LRU_TTL<
   #ttlInterval: NodeJS.Timeout | null = null;
 
   /** Current TTL tick: use to clean up expired items (performance optimization) */
-  protected _currentTick: number = 0;
+  protected _currentTick: number = Date.now();
 
   constructor(options?: Options<K, V, ResolverArgs, M>) {
     if (options != null) {
@@ -437,6 +436,22 @@ export default class LRU_TTL<
     }
   }
 
+  /**
+   * Destroy the cache and clear all resources.
+   * Use this to immediatly clean up intervals and references.
+   * without this, the TTL interval (when using TTL) will remain active several minutes until garbage collected.
+   * Optional but recommended to enhance performance and prevent memory leaks.
+   * After calling this method, the cache instance should not be used anymore.
+   */
+  destroy(): void {
+    this.clear();
+    if (this.#ttlInterval != null) {
+      clearInterval(this.#ttlInterval);
+      this.#ttlInterval = null;
+    }
+    TTL_FINALIZATION_REGISTRY.unregister(this);
+  }
+
   protected _setResolvedValue(key: K, result: ResolverResultType<K, V>): M {
     return this.set(key, result.value);
   }
@@ -458,6 +473,8 @@ export default class LRU_TTL<
     /** Unref the interval to allow the program to exit if this is the only active timer */
     intervalId.unref?.();
     this.#ttlInterval = intervalId;
+    // stop scoped caches
+    TTL_FINALIZATION_REGISTRY.register(this, intervalId);
   }
 
   protected _removeRecord(entry: M) {
@@ -646,7 +663,7 @@ export default class LRU_TTL<
       parsedValue =
         ttl === Infinity
           ? TTL_ACCURACY_DEFAULT
-          : Math.max(Math.ceil(ttl / TTL_ACCURACY_DEFAULT_FRAG), TIME_UNIT);
+          : Math.max(Math.ceil(ttl / TTL_ACCURACY_DEFAULT_FRAG), TTL_ACCURACY_MIN);
     } else if (typeof ttlAccuracy === 'string') {
       parsedValue = parseTimeExpression(ttlAccuracy);
     } else if (typeof ttlAccuracy === 'number') {
@@ -654,8 +671,10 @@ export default class LRU_TTL<
     } else {
       throw new Error(`Invalid ttlAccuracy type: ${typeof ttlAccuracy}`);
     }
-    if (parsedValue < TIME_UNIT) {
-      throw new Error(`Invalid ttlAccuracy value: ${ttlAccuracy}. Minimum is ${TIME_UNIT}ms`);
+    if (parsedValue < TTL_ACCURACY_MIN) {
+      throw new Error(
+        `Invalid ttlAccuracy value: ${ttlAccuracy}. Minimum is ${TTL_ACCURACY_MIN}ms`,
+      );
     }
     this._ttlAccuracy = parsedValue;
   }
