@@ -1,6 +1,6 @@
 export type BytesValue =
   | number
-  | `${number}${'' | 'K' | 'M' | 'G' | 'T'}${'' | 'i'}${'' | 'B' | 'b'}`;
+  | `${number}${'' | 'KB' | 'KiB' | 'Kb' | 'MB' | 'MiB' | 'Mb' | 'GB' | 'GiB' | 'Gb' | 'TB' | 'TiB' | 'Tb'}`;
 
 const UNIT_REGEX = /^(\d+(?:\.\d+)?)\s*([KMGT]?i?[Bb]?)$/;
 
