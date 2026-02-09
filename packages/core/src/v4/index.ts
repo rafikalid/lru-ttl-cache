@@ -201,15 +201,29 @@ export default class LRU_TTL<
       for (const [key, value] of entries) {
         this.set(key, value);
       }
+    } else if (typeof src !== 'object' || src == null) {
+      throw new Error('Invalid source type for LRU_TTL.from()');
     } else if (Reflect.has(src, Symbol.iterator)) {
-      for (const [key, value] of src as Iterable<[K, V]>) {
+      for (const entry of src as Iterable<[K, V]>) {
+        if (!Array.isArray(entry) || entry.length !== 2) {
+          throw new Error(
+            `Invalid entry in iterable source: ${entry}, expected [key, value] tuple.`,
+          );
+        }
+        const [key, value] = entry;
         this.set(key, value);
       }
     } else if (typeof (src as Iterator<[K, V]>).next === 'function') {
       const iterator = src as Iterator<[K, V]>;
       let result = iterator.next();
       while (!result.done) {
-        const [key, value] = result.value;
+        const entry = result.value;
+        if (!Array.isArray(entry) || entry.length !== 2) {
+          throw new Error(
+            `Invalid entry in iterable source: ${entry}, expected [key, value] tuple.`,
+          );
+        }
+        const [key, value] = entry;
         this.set(key, value);
         result = iterator.next();
       }
