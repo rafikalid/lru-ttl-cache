@@ -6,7 +6,7 @@ export interface Metadata<V> {
   lastAccessedAt: number;
 }
 
-export type Resolver<K, V, ArgsType extends any[]> = (
+export type Resolver<K, V, ArgsType extends any[] = []> = (
   key: K,
   ...args: ArgsType
 ) =>
