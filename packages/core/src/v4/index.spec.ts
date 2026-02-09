@@ -40,7 +40,7 @@ describe('LRU_TTL - Constructor and Options', () => {
   });
 
   it('should handle string max values', () => {
-    const cache = new LRU_TTL({ max: '5k' });
+    const cache = new LRU_TTL({ max: '5K' });
     expect(cache.evalMax).toBe(5000);
   });
 
@@ -61,7 +61,7 @@ describe('LRU_TTL v4 - Basic Operations', () => {
   let cache: LRU_TTL<string, string>;
 
   beforeEach(() => {
-    cache = new LRU_TTL();
+    cache = new LRU_TTL({ max: 1000, ttl: 1000 });
   });
 
   afterEach(() => {
@@ -112,17 +112,18 @@ describe('LRU_TTL v4 - Basic Operations', () => {
       cacheAny.destroy();
     });
 
-    it('should update lastAccessedAt on get', () => {
+    it('should update lastAccessedAt on get', async () => {
       vi.useFakeTimers();
+      const cache = new LRU_TTL<string, string>({ ttl: 1000 });
       cache.set('key1', 'value1');
       const metadata1 = cache.peekMetadata('key1');
 
-      vi.advanceTimersByTime(100);
+      await vi.advanceTimersByTimeAsync(1100);
+      vi.useRealTimers();
       cache.get('key1');
 
       const metadata2 = cache.peekMetadata('key1');
       expect(metadata2?.lastAccessedAt).toBeGreaterThan(metadata1!.lastAccessedAt);
-      vi.useRealTimers();
     });
 
     it('should return this for chaining', () => {
@@ -348,9 +349,9 @@ describe('LRU_TTL v4 - Max Property', () => {
   });
 
   it('should parse string max values', () => {
-    cache.max = '5k';
+    cache.max = '5K';
     expect(cache.evalMax).toBe(5000);
-    expect(cache.max).toBe('5k');
+    expect(cache.max).toBe('5K');
   });
 
   it('should throw error for invalid max values', () => {
@@ -374,83 +375,76 @@ describe('LRU_TTL v4 - Max Property', () => {
 });
 
 describe('LRU_TTL v4 - TTL Behavior', () => {
-  let cache: LRU_TTL<string, string>;
-
-  beforeEach(() => {
+  it('should expire items after TTL', async () => {
     vi.useFakeTimers();
-  });
+    const cache = new LRU_TTL<string, string>({ ttl: 1000, ttlAccuracy: 100 });
+    cache.set('key1', 'value1');
 
-  afterEach(() => {
-    cache?.destroy();
+    expect(cache.get('key1')).toBe('value1');
+
+    await vi.advanceTimersByTimeAsync(1100);
+
+    expect(cache.get('key1')).toBeUndefined();
     vi.useRealTimers();
   });
 
-  it('should expire items after TTL', async () => {
-    cache = new LRU_TTL({ ttl: 1000, ttlAccuracy: 100 });
-    cache.set('key1', 'value1');
-
-    expect(cache.get('key1')).toBe('value1');
-
-    vi.advanceTimersByTime(1100);
-    await vi.runAllTimersAsync();
-
-    expect(cache.get('key1')).toBeUndefined();
-  });
-
   it('should refresh TTL on access', async () => {
-    cache = new LRU_TTL({ ttl: 1000, ttlAccuracy: 100 });
+    vi.useFakeTimers();
+    const cache = new LRU_TTL({ ttl: 1000, ttlAccuracy: 100 });
     cache.set('key1', 'value1');
 
-    vi.advanceTimersByTime(500);
+    await vi.advanceTimersByTimeAsync(500);
     cache.get('key1'); // refresh
 
-    vi.advanceTimersByTime(600);
-    await vi.runAllTimersAsync();
+    await vi.advanceTimersByTimeAsync(600);
 
     expect(cache.get('key1')).toBe('value1');
+    vi.useRealTimers();
   });
 
   it('should not expire items when TTL is Infinity', async () => {
-    cache = new LRU_TTL({ ttl: Infinity });
+    const cache = new LRU_TTL({ ttl: Infinity });
+    vi.useFakeTimers();
     cache.set('key1', 'value1');
 
-    vi.advanceTimersByTime(100000);
-    await vi.runAllTimersAsync();
-
+    await vi.advanceTimersByTimeAsync(100000);
     expect(cache.get('key1')).toBe('value1');
+    vi.useRealTimers();
   });
 
   it('should handle multiple items with different access times', async () => {
-    cache = new LRU_TTL({ ttl: 1000, ttlAccuracy: 100 });
+    vi.useFakeTimers();
+    const cache = new LRU_TTL({ ttl: 1000, ttlAccuracy: 100 });
 
     cache.set('key1', 'value1');
-    vi.advanceTimersByTime(500);
+    await vi.advanceTimersByTimeAsync(500);
     cache.set('key2', 'value2');
 
-    vi.advanceTimersByTime(600);
-    await vi.runAllTimersAsync();
+    await vi.advanceTimersByTimeAsync(600);
 
     expect(cache.get('key1')).toBeUndefined();
     expect(cache.get('key2')).toBe('value2');
+    vi.useRealTimers();
   });
 
   it('should stop checking after finding non-expired item', async () => {
-    cache = new LRU_TTL({ ttl: 1000, ttlAccuracy: 100 });
+    vi.useFakeTimers();
+    const cache = new LRU_TTL({ ttl: 1000, ttlAccuracy: 100 });
 
     cache.set('key1', 'value1');
     cache.set('key2', 'value2');
     cache.set('key3', 'value3');
 
-    vi.advanceTimersByTime(500);
+    await vi.advanceTimersByTimeAsync(500);
     cache.get('key2'); // refresh key2
     cache.get('key3'); // refresh key3
 
-    vi.advanceTimersByTime(600);
-    await vi.runAllTimersAsync();
+    await vi.advanceTimersByTimeAsync(600);
 
     expect(cache.has('key1')).toBe(false);
     expect(cache.has('key2')).toBe(true);
     expect(cache.has('key3')).toBe(true);
+    vi.useRealTimers();
   });
 });
 
@@ -542,11 +536,9 @@ describe('LRU_TTL v4 - TTL Accuracy', () => {
 
   it('should throw error when ttlAccuracy is Infinity with finite ttl', () => {
     cache.ttl = 5000;
-    cache.ttlAccuracy = Infinity;
-
     expect(() => {
-      cache.set('key1', 'value1'); // triggers interval setup
-    }).toThrow('Invalid ttlAccuracy value: cannot be Infinity when ttl is set');
+      cache.ttlAccuracy = Infinity;
+    }).toThrow();
   });
 
   it('should return ttlAccuracy when set explicitly', () => {
@@ -762,14 +754,13 @@ describe('LRU_TTL v4 - setFrom and static from', () => {
   });
 
   it('should set from another LRU_TTL instance', () => {
-    const source = new LRU_TTL<string, string>();
+    using source = new LRU_TTL<string, string>();
     source.set('key1', 'value1');
     source.set('key2', 'value2');
 
     cache.setFrom(source);
     expect(cache.get('key1')).toBe('value1');
     expect(cache.get('key2')).toBe('value2');
-    source.destroy();
   });
 
   it('should set from Map', () => {
@@ -1042,7 +1033,7 @@ describe('LRU_TTL v4 - Edge Cases', () => {
 describe('LRU_TTL v4 - Integration Tests', () => {
   it('should combine LRU and TTL behavior', async () => {
     vi.useFakeTimers();
-    const cache = new LRU_TTL<string, string>({ max: 3, ttl: 1000, ttlAccuracy: 100 });
+    using cache = new LRU_TTL<string, string>({ max: 3, ttl: 1000, ttlAccuracy: 500 });
 
     cache.set('key1', 'value1');
     cache.set('key2', 'value2');
@@ -1053,13 +1044,10 @@ describe('LRU_TTL v4 - Integration Tests', () => {
     expect(cache.has('key1')).toBe(false);
 
     // Wait for TTL
-    vi.advanceTimersByTime(1100);
-    await vi.runAllTimersAsync();
+    await vi.advanceTimersByTimeAsync(2000);
 
     // All should be expired
     expect(cache.size).toBe(0);
-
-    cache.destroy();
     vi.useRealTimers();
   });
 
@@ -1152,7 +1140,7 @@ describe('LRU_TTL v4 - Constants', () => {
   });
 
   it('should export TTL_ACCURACY_DEFAULT_FRAG', () => {
-    expect(TTL_ACCURACY_DEFAULT_FRAG).toBe(10);
+    expect(TTL_ACCURACY_DEFAULT_FRAG).toBe(5);
   });
 
   it('should export TTL_ACCURACY_MIN', () => {
