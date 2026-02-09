@@ -2,8 +2,9 @@ import { BytesValue, parseBytes } from '../utils/bytes-parser';
 import { parseTimeExpression } from '../utils/time-parser';
 import { Metadata, Options, Resolver, ResolverResultType } from './types';
 
-export const TTL_ACCURACY_DEFAULT_FRAG = 10;
+export const TTL_ACCURACY_DEFAULT_FRAG = 5;
 export const TTL_ACCURACY_DEFAULT = 1000; // 1s
+export const TTL_ACCURACY_DEFAULT_MIN = 500; // ms
 export const TTL_ACCURACY_MIN = 100; // ms
 
 const TTL_FINALIZATION_REGISTRY = new FinalizationRegistry((intervalId: NodeJS.Timeout) => {
@@ -147,11 +148,13 @@ export default class LRU_TTL<
   get(key: K): V | undefined {
     const metadata = super.get(key);
     if (metadata == null) return undefined;
-    const now = this._currentTick;
-    metadata.lastAccessedAt = now; // lastAccessedAt
+    const value = metadata.value;
     super.delete(key);
-    super.set(key, metadata);
-    return metadata.value;
+    super.set(key, {
+      value,
+      lastAccessedAt: this._currentTick,
+    } as M);
+    return value;
   }
 
   peek(key: K): V | undefined {
@@ -178,18 +181,37 @@ export default class LRU_TTL<
     return this;
   }
 
-  setFrom(src: LRU_TTL<K, V, ResolverArgs, M> | Map<K, V> | IterableIterator<[K, V]> | [K, V][]) {
+  setFrom(
+    src:
+      | LRU_TTL<K, V, ResolverArgs, M>
+      | Map<K, V>
+      | Iterator<[K, V]>
+      | Iterable<[K, V]>
+      | [K, V][],
+  ) {
     if (src instanceof LRU_TTL) {
-      for (const [key, value] of src.entries().drop(5)) {
+      const dropCount = src.size - this._max;
+      const entries = dropCount > 0 ? src.entries().drop(dropCount) : src.entries();
+      for (const [key, value] of entries) {
         this.set(key, value.value);
       }
     } else if (src instanceof Map) {
-      for (const [key, value] of src) {
+      const dropCount = src.size - this._max;
+      const entries = dropCount > 0 ? src.entries().drop(dropCount) : src.entries();
+      for (const [key, value] of entries) {
         this.set(key, value);
       }
-    } else if (typeof src[Symbol.iterator] === 'function') {
-      for (const [key, value] of src as IterableIterator<[K, V]> | [K, V][]) {
+    } else if (Reflect.has(src, Symbol.iterator)) {
+      for (const [key, value] of src as Iterable<[K, V]>) {
         this.set(key, value);
+      }
+    } else if (typeof (src as Iterator<[K, V]>).next === 'function') {
+      const iterator = src as Iterator<[K, V]>;
+      let result = iterator.next();
+      while (!result.done) {
+        const [key, value] = result.value;
+        this.set(key, value);
+        result = iterator.next();
       }
     } else {
       throw new Error('Invalid source type for LRU_TTL.from()');
@@ -306,7 +328,6 @@ export default class LRU_TTL<
       throw new Error(
         `Invalid ttlAccuracy value: cannot be Infinity when ttl is set (ttl= ${this._ttl}).`,
       );
-
     const intervalId = setInterval(() => {
       this._ttlCleaner();
     }, ttlAccuracy);
@@ -340,7 +361,10 @@ export default class LRU_TTL<
     }
   }
 
-  async *[Symbol.asyncIterator](): AsyncIterableIterator<[K, M]> {
+  async *[Symbol.asyncIterator](): AsyncIterableIterator<
+    [K, Omit<M, 'value'> & { value: Awaited<M['value']> }]
+  > {
+    type AwaitedM = Omit<M, 'value'> & { value: Awaited<M['value']> };
     // Serve resolved entries immediately, and collect pending promises
     let pendingPromises: Promise<[K, M]>[] = [];
     const mapPendingPromises = new Map<K, Promise<[K, M]>>();
@@ -351,14 +375,14 @@ export default class LRU_TTL<
         pendingPromises.push(pendingPromise);
         mapPendingPromises.set(key, pendingPromise);
       } else {
-        yield [key, entry];
+        yield [key, entry as AwaitedM];
       }
     }
 
     // Await and yield pending promises
     while (pendingPromises.length > 0) {
       const settledEntry = await Promise.race(pendingPromises);
-      yield settledEntry;
+      yield settledEntry as [K, AwaitedM];
       // Remove the settled promise from the array
       const settledPromise = mapPendingPromises.get(settledEntry[0])!;
       pendingPromises = pendingPromises.filter((p) => p !== settledPromise);
@@ -374,7 +398,7 @@ export default class LRU_TTL<
       parsedValue =
         ttl === Infinity
           ? TTL_ACCURACY_DEFAULT
-          : Math.max(Math.ceil(ttl / TTL_ACCURACY_DEFAULT_FRAG), TTL_ACCURACY_DEFAULT);
+          : Math.max(Math.ceil(ttl / TTL_ACCURACY_DEFAULT_FRAG), TTL_ACCURACY_DEFAULT_MIN);
     } else if (typeof ttlAccuracy === 'string') {
       parsedValue = parseTimeExpression(ttlAccuracy);
     } else if (typeof ttlAccuracy === 'number') {
@@ -392,7 +416,12 @@ export default class LRU_TTL<
 
   /** Create a new LRU_TTL instance from various sources */
   static from<K, V, ResolverArgs extends any[], M extends Metadata<V>>(
-    src: LRU_TTL<K, V, ResolverArgs, M> | Map<K, V> | IterableIterator<[K, V]> | [K, V][],
+    src:
+      | LRU_TTL<K, V, ResolverArgs, M>
+      | Map<K, V>
+      | Iterable<[K, V]>
+      | Iterator<[K, V]>
+      | [K, V][],
     options?: Options<K, V>,
   ): LRU_TTL<K, V, ResolverArgs, M> {
     const cache = new LRU_TTL<K, V, ResolverArgs, M>(options);
